@@ -1,0 +1,33 @@
+http:
+  serversTransports:
+    # One transport for every YunoHost host: YunoHost picks the vhost from the Host
+    # header, so per-host SNI is not needed (verified: git served Forgejo with an
+    # unrelated SNI). The certificate is ignored, hence insecureSkipVerify.
+    yh-any:
+      insecureSkipVerify: true
+  middlewares:
+    to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  routers:
+    # Everything under the domain that has no explicit router goes to YunoHost on nexus
+    # through the frp tunnel. New YunoHost apps need no change here and none on gate.
+    yuno-fallback:
+      rule: "HostRegexp(`^[a-z0-9-]+\\.doesnmlab\\.xyz$`)"
+      entryPoints: [websecure]
+      priority: 1
+      service: yuno
+      tls:
+        certResolver: desec
+    yuno-fallback-http:
+      rule: "HostRegexp(`^[a-z0-9-]+\\.doesnmlab\\.xyz$`)"
+      entryPoints: [web]
+      priority: 1
+      middlewares: [to-https]
+      service: yuno
+  services:
+    yuno:
+      loadBalancer:
+        serversTransport: yh-any
+        servers: [{ url: "https://frps:10010" }]

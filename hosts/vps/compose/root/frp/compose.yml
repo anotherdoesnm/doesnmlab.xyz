@@ -1,0 +1,12 @@
+services:
+  frps:
+    image: snowdreamtech/frps:latest
+    container_name: frps
+    restart: always
+    volumes:
+      - ./frps.toml:/etc/frp/frps.toml:ro
+    networks:
+      - traefik_network
+networks:
+  traefik_network:
+    external: true

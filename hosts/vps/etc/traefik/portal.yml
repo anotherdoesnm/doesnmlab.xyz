@@ -1,0 +1,19 @@
+# The YunoHost portal lives on the main domain (https://doesnmlab.xyz/yunohost/sso),
+# but the apex domain is served by the homepage container. Every YunoHost app that
+# needs a login therefore redirected into a 404. This routes just the portal paths
+# to nexus and leaves the rest of the apex to homepage.
+http:
+  routers:
+    yuno-portal:
+      rule: "Host(`doesnmlab.xyz`) && PathPrefix(`/yunohost`)"
+      entryPoints: [websecure]
+      priority: 100
+      service: yuno
+      tls:
+        certResolver: myresolver
+    yuno-portal-http:
+      rule: "Host(`doesnmlab.xyz`) && PathPrefix(`/yunohost`)"
+      entryPoints: [web]
+      priority: 100
+      middlewares: [to-https]
+      service: yuno

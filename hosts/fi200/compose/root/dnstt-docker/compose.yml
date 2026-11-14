@@ -1,0 +1,46 @@
+services:
+
+  dnstt:
+    image: git.dc09.ru/darkcat09/dnstt:latest
+    build: .
+    restart: on-failure
+    # if you want to run everything on the host network
+    ports:
+     - "53:53/udp"
+     - "53:53/tcp"
+    volumes:
+      - "./data:/data"
+    environment:
+      PORT: 53
+      # auto-generated on first start
+      # see logs for pubkey
+      KEY_FILE: "/data/server.key"
+      # set to your domain
+      DOMAIN: "t.project26.cc"
+      # set to your upstream proxy
+      # this is where dnstt tunnels traffic to
+      #UPSTREAM: "127.0.0.1:2080"
+      UPSTREAM: "proxy:2080"
+
+  # you may want to run some proxy to use with dnstt
+  # e.g.:
+  # * ssh's built-in socks proxy
+  # * full-featured toolkits like sing-box, xray
+  #
+  # the proxy must be accessible for the dnstt container
+  # choose one:
+  # * put the proxy in the same docker-compose config (here),
+  #   so dnstt and proxy container will be in the same docker network
+  #   (see example with sing-box below + UPSTREAM:"proxy:2080")
+  # * create a docker network, use it both for proxy and dnstt
+  # * just let everything share the host network
+  #   (uncomment `network_mode: host` above)
+
+  # remove if you don't need sing-box here
+  proxy:
+    image: ghcr.io/sagernet/sing-box:latest
+    restart: unless-stopped
+    command: run -c /etc/sing-box/config.json
+    volumes:
+      # example config for socks proxy is provided
+      - "./sing-box:/etc/sing-box:ro"

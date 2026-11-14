@@ -1,0 +1,89 @@
+# docker-compose.yml
+services:
+  traefik:
+    image: traefik:v3.7
+    restart: always
+    env_file:
+      - ./desec.env
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.ircsecure.address=:6697"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/traefik"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=doesnm@project26.cc"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.desec.acme.email=doesnm@project26.cc"
+      - "--certificatesresolvers.desec.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.desec.acme.dnschallenge=true"
+      - "--certificatesresolvers.desec.acme.dnschallenge.provider=desec"
+      - "--certificatesresolvers.desec.acme.dnschallenge.resolvers=1.1.1.1:53"
+      # deSEC publishes to its authoritative servers with a delay, so checking instantly
+      # always fails even though the record is already accepted.
+      - "--certificatesresolvers.desec.acme.dnschallenge.delaybeforecheck=120s"
+      # lego's own propagation poll gives up before deSEC has pushed the record to its
+      # authoritative servers; Let's Encrypt checks them directly instead.
+      - "--certificatesresolvers.desec.acme.dnschallenge.disablePropagationCheck=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "6697:6697"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./certs:/letsencrypt
+      - ./traefik:/traefik
+    networks:
+      - traefik_network
+  homepage:
+    image: homepage-patched:22.23.4
+    restart: always
+    container_name: homepage
+    volumes:
+      - ./homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik_network
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: doesnmlab.xyz,doesnm.dn42
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.homepage-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.homepage.rule=Host(`doesnmlab.xyz`)"
+      - "traefik.http.routers.homepage.entrypoints=web"
+      - "traefik.http.routers.homepage.middlewares=homepage-https"
+      - "traefik.http.routers.homepage-secure.rule=Host(`doesnmlab.xyz`)"
+      - "traefik.http.routers.homepage-secure.entrypoints=websecure"
+      - "traefik.http.routers.homepage-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.homepage-secure.service=homepage-service"
+      - "traefik.http.services.homepage-service.loadbalancer.server.port=3000"
+      - "traefik.http.routers.homepage-dn42.rule=Host(`doesnm.dn42`)"
+      - "traefik.http.routers.homepage-dn42.entrypoints=web"
+  auth:
+     image: ghcr.io/kivraid/kivraid:2026.07.25.120008
+     restart: always
+     networks:
+       - traefik_network
+     volumes:
+       - ./kivraid:/data
+     labels:
+       - "traefik.enable=true"
+       - "traefik.http.middlewares.auth-https.redirectscheme.scheme=https"
+       - "traefik.http.routers.auth.rule=Host(`auth.doesnmlab.xyz`)"
+       - "traefik.http.routers.auth.entrypoints=web"
+       - "traefik.http.routers.auth.middlewares=auth-https"
+       - "traefik.http.routers.auth-secure.rule=Host(`auth.doesnmlab.xyz`)"
+       - "traefik.http.routers.auth-secure.entrypoints=websecure"
+       - "traefik.http.routers.auth-secure.tls.certresolver=myresolver"
+       - "traefik.http.routers.auth-secure.service=auth-service"
+       - "traefik.http.services.auth-service.loadbalancer.server.port=9000"
+       - "homepage.group=Tools"
+       - "homepage.name=auth"
+       - "homepage.href=https://auth.doesnmlab.xyz"
+       - "homepage.description=SSO Auth"
+       - "homepage.icon=https://raw.githubusercontent.com/kivraid/kivraid/main/docs/img/logo.svg"
+networks:
+  traefik_network:
+    external: true

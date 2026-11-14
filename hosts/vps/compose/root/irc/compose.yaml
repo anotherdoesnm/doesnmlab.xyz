@@ -1,0 +1,38 @@
+services:
+  parley:
+    image: prologic/parley
+    restart: always
+    command: -domain doesnmlab.xyz -endpoint https://parley.doesnmlab.xyz
+    volumes:
+      - ./parley:/data
+    networks:
+      - traefik_network
+    environment:
+      - PARLEY_OIDC_NAME=SSO
+      - PARLEY_OIDC_ISSUER=https://auth.doesnmlab.xyz
+      - PARLEY_OIDC_CLIENT_ID=7869859481717faeeecd02009cc213aeea487ba7
+      - PARLEY_OIDC_CLIENT_SECRET=${PARLEY_OIDC_CLIENT_SECRET}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.parley-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.parley-http.rule=Host(`parley.doesnmlab.xyz`)"
+      - "traefik.http.routers.parley-http.entrypoints=web"
+      - "traefik.http.routers.parley-http.middlewares=parley-https"
+      - "traefik.http.routers.parley-secure.rule=Host(`parley.doesnmlab.xyz`)"
+      - "traefik.http.routers.parley-secure.entrypoints=websecure"
+      - "traefik.http.routers.parley-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.parley-secure.service=parley-web-service"
+      - "traefik.http.services.parley-web-service.loadbalancer.server.port=8443"
+      - "traefik.tcp.routers.parley-irc-tls.rule=HostSNI(`parley.doesnmlab.xyz`)"
+      - "traefik.tcp.routers.parley-irc-tls.entrypoints=ircsecure"
+      - "traefik.tcp.routers.parley-irc-tls.tls.certresolver=myresolver"
+      - "traefik.tcp.routers.parley-irc-tls.service=parley-irc-service"
+      - "traefik.tcp.services.parley-irc-service.loadbalancer.server.port=6667"
+      - "homepage.name=parley"
+      - "homepage.group=Communication"
+      - "homepage.description=Federated IRC"
+      - "homepage.href=https://parley.doesnmlab.xyz"
+      - "homepage.icon=https://parley.doesnmlab.xyz/icon.png"
+networks:
+  traefik_network:
+    external: true

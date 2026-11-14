@@ -1,0 +1,21 @@
+http:
+  serversTransports:
+    yh-fluxer:
+      insecureSkipVerify: true
+      serverName: fluxer.doesnmlab.xyz
+  routers:
+    fluxer:
+      rule: "Host(`fluxer.doesnmlab.xyz`)"
+      entryPoints: [websecure]
+      service: fluxer
+      tls: { certResolver: myresolver }
+    fluxer-redirect:
+      rule: "Host(`fluxer.doesnmlab.xyz`)"
+      entryPoints: [web]
+      middlewares: [to-https]
+      service: fluxer
+  services:
+    fluxer:
+      loadBalancer:
+        serversTransport: yh-fluxer
+        servers: [{ url: "https://frps:10010" }]

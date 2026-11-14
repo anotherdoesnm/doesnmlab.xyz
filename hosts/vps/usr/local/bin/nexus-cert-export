@@ -1,0 +1,9 @@
+#!/bin/bash
+# Serves the Let's Encrypt material extracted from Traefik's acme.json to nexus
+# as a tar stream on stdout.
+#
+# Runs as the forced command of the `nexus-cert-refresh` key, which therefore
+# cannot run anything else on this host: no shell, no scp subsystem, no files.
+set -eu
+/usr/bin/python3 /usr/local/sbin/extract-certs.py >/dev/null
+exec /usr/bin/tar -C /root/tls-out -cf - .

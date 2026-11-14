@@ -1,0 +1,17 @@
+http:
+  routers:
+    wildcard-cert:
+      rule: "Host(`cert.doesnmlab.xyz`)"
+      entryPoints: [websecure]
+      service: yuno-fallback
+      tls:
+        certResolver: desec
+        domains:
+          # Only the wildcard: asking for the apex too makes lego write two TXT records
+          # into the same _acme-challenge rrset, which deSEC rejects as a duplicate.
+          - main: "*.doesnmlab.xyz"
+  services:
+    yuno-fallback:
+      loadBalancer:
+        serversTransport: yh-any
+        servers: [{ url: "https://frps:10010" }]

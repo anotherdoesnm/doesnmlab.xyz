@@ -1,0 +1,22 @@
+version: "3"
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    network_mode: host
+    environment:
+      SYNAPSE_SERVER_NAME: localhost
+      SYNAPSE_REPORT_STATS: 'no'
+      UID: 1000
+      GID: 1000
+    volumes:
+      - ./docker-compose/init/synapse-init.sh:/synapse-init.sh:ro
+      - './synapse-data:/data'
+    entrypoint: /synapse-init.sh
+  inspircd:
+    image: inspircd/inspircd-docker:latest
+    network_mode: host
+    environment:
+      # use: "/oper oper oper" to gain opers
+      INSP_OPER_HASH: 'sha256'
+      INSP_OPER_PASSWORD_HASH: ${INSP_OPER_PASSWORD_HASH}
+      INSP_OPER_SSLONLY: 'no'

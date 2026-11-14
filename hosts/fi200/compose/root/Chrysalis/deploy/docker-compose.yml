@@ -1,0 +1,116 @@
+# Полигон (сценарий A спеки deploy-docker.md): весь стек на одной машине.
+#
+#   docker compose up -d --build
+#   Шлюз (как в бою): http://127.0.0.1:8000/  — WebAPI И /gateways.json
+#   WebAPI напрямую:  http://127.0.0.1:3456/  (для отладки)
+#   Реестр:           http://127.0.0.1:8000/gateways.json
+#   Tor:              onion-адрес появится в volume tor-hs-gateway (hostname)
+#
+# Один onion на шлюз: и WebAPI, и реестр за фронт-прокси (deploy/proxy) —
+# URL шлюза из реестра годится и для заливки, и для GET /gateways.json.
+#
+# Реестр (deploy/gateways/gateways.json) ПОДПИСЫВАЕТСЯ вне репозитория ключом
+# проекта (escape_core/examples/gateway_registry sign, окно — --valid-for) —
+# приватный ключ сюда не кладём.
+
+services:
+  introducer:
+    build: ./tahoe
+    container_name: chrysalis-introducer
+    environment:
+      ROLE: introducer
+      INTRODUCER_HOST: introducer
+    volumes:
+      - tahoe-intro:/data
+    restart: unless-stopped
+
+  storage-1:
+    build: ./tahoe
+    container_name: chrysalis-storage-1
+    environment:
+      ROLE: storage
+      NODE_NAME: storage-1
+      NODE_PORT: "3458"
+      ADVERTISE_HOST: storage-1
+      INTRO_FURL_FILE: /intro/private/introducer.furl
+    volumes:
+      - tahoe-intro:/intro:ro
+      - tahoe-storage-1:/data
+    depends_on:
+      - introducer
+    restart: unless-stopped
+
+  storage-2:
+    build: ./tahoe
+    container_name: chrysalis-storage-2
+    environment:
+      ROLE: storage
+      NODE_NAME: storage-2
+      NODE_PORT: "3460"
+      ADVERTISE_HOST: storage-2
+      INTRO_FURL_FILE: /intro/private/introducer.furl
+    volumes:
+      - tahoe-intro:/intro:ro
+      - tahoe-storage-2:/data
+    depends_on:
+      - introducer
+    restart: unless-stopped
+
+  gateway:
+    build: ./tahoe
+    container_name: chrysalis-gateway
+    environment:
+      ROLE: gateway
+      NODE_NAME: gateway
+      NODE_PORT: "3459"
+      WEBAPI_PORT: "3456"
+      ADVERTISE_HOST: gateway
+      INTRO_FURL_FILE: /intro/private/introducer.furl
+      # Полигон: один узел хранит доли (shares 1/1/2). Боевой грид — по числу
+      # storage-нод (tahoe.cfg/docs/deploy-docker.md §2 C): 2 ноды — 1/1/2,
+      # 3 ноды — 2/2/3. Эти параметры берутся из конфига ШЛЮЗА и зашиваются
+      # в кап при заливке, поэтому задавать их надо до первой заливки.
+      SHARES_NEEDED: "1"
+      SHARES_HAPPY: "1"
+      SHARES_TOTAL: "2"
+    volumes:
+      - tahoe-intro:/intro:ro
+      - tahoe-gateway:/data
+    ports:
+      - "127.0.0.1:3456:3456"
+    depends_on:
+      - introducer
+    restart: unless-stopped
+
+  # Фронт-прокси: отдаёт /gateways.json (подписанный файл из ./gateways)
+  # и проксирует остальное в Tahoe WebAPI. Один вход для обеих задач.
+  proxy:
+    build: ./proxy
+    container_name: chrysalis-proxy
+    volumes:
+      - ./gateways:/usr/share/nginx/html:ro
+    ports:
+      - "127.0.0.1:8000:80"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+  tor:
+    build: ./tor
+    container_name: chrysalis-tor
+    volumes:
+      - tor-hs-gateway:/var/lib/tor/hs-gateway
+      - ./tor/torrc:/etc/chrysalis/torrc:ro
+    depends_on:
+      - proxy
+    # Потолок памяти (docs/deploy-docker.md §17): замер tor с onion-сервисом —
+    # ~98 МБ RSS, 256 МБ оставляют запас. TOR_MEM_LIMIT=0 — без потолка.
+    mem_limit: ${TOR_MEM_LIMIT:-256m}
+    restart: unless-stopped
+
+volumes:
+  tahoe-intro:
+  tahoe-storage-1:
+  tahoe-storage-2:
+  tahoe-gateway:
+  tor-hs-gateway:

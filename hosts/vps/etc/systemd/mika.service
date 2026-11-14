@@ -1,0 +1,17 @@
+[Unit]
+Description=White IP 212.192.223.99: ipip tunnel, policy route and bird
+# mika.sh is written to run once on a fresh boot: after a reboot the tunnel and
+# the policy rule are gone, and the white IP stops answering. This unit makes
+# that automatic instead of a thing to remember.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# ip link add fails when the tunnel already exists; the rest of the script is
+# then still correct, and it is what re-applies the address and the rule.
+ExecStart=/bin/sh /root/mika.sh
+
+[Install]
+WantedBy=multi-user.target

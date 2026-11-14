@@ -1,0 +1,182 @@
+services:
+  # initialize directories and configs
+  generate:
+    image: git.dc09.xyz/chatmail/generate:latest
+    volumes:
+      - ./instance:/instance
+      - ./chatmail.ini:/chatmail.ini:ro
+      # - ./src/config:/template/config:ro
+      # - ./src/web:/template/web:ro
+
+#  nginx:
+#    image: git.dc09.xyz/chatmail/nginx:latest
+#    restart: on-failure
+#    ports:
+#      - 80:80
+#      - 443:443
+#    volumes:
+#      - ./instance/config/nginx:/etc/nginx:ro
+#      - ./instance/web:/var/www/chatmail:ro
+#      - &vol-acme-web ./instance/data/certbot/web:/var/www/certbot
+#      - &vol-tls ./instance/config/tls:/tls:ro
+#      - &vol-newemail ./instance/socket/newemail:/run/newemail
+#    depends_on: &deps-gen
+#      generate: &dep-exit0
+#        condition: service_completed_successfully
+
+#  certbot:
+#    image: git.dc09.xyz/chatmail/certbot:latest
+#    restart: on-failure
+#    volumes:
+#      - ./instance/data/certbot/etc:/etc/letsencrypt
+#      - ./instance/data/certbot/var:/var/lib/letsencrypt
+#      - *vol-acme-web
+#      - ./instance/config/tls:/tls
+#      - &vol-domain ./instance/config/domain:/domain:ro
+#    depends_on:
+#      nginx: &dep-start
+#        condition: service_started
+
+  postfix:
+    image: git.dc09.xyz/chatmail/postfix:latest
+    restart: unless-stopped
+    ports:
+      - 25:25
+      - 465:465
+      - 587:587
+    volumes:
+      - &vol-vmail ./instance/data/vmail:/home/vmail
+      - &vol-postfix ./instance/data/postfix:/var/spool/postfix
+      - ./instance/config/postfix:/etc/postfix
+      - &vol-tls ./instance/config/tls:/tls
+      - /etc/letsencrypt/live/cm4.project26.cc/fullchain.pem:/tls/cert.pem
+      - /etc/letsencrypt/live/cm4.project26.cc/privkey.pem:/tls/key.pem
+      - &vol-dkim ./instance/socket/opendkim-postfix:/var/spool/postfix/opendkim
+    depends_on:
+      generate: &dep-exit0
+        condition: service_completed_successfully
+      opendkim: &dep-start
+        condition: service_started
+
+  dovecot:
+    image: git.dc09.xyz/chatmail/dovecot:latest
+    restart: unless-stopped
+    ports:
+      - 143:143
+      - 993:993
+    volumes:
+      - *vol-vmail
+      - *vol-postfix
+      - ./instance/config/dovecot:/etc/dovecot:ro
+      - *vol-tls
+      - /etc/letsencrypt/live/cm4.project26.cc/fullchain.pem:/tls/cert.pem
+      - /etc/letsencrypt/live/cm4.project26.cc/privkey.pem:/tls/key.pem
+      - &vol-metadata ./instance/socket/metadata:/run/chatmail-metadata
+      - &vol-lastlogin ./instance/socket/lastlogin:/run/chatmail-lastlogin
+      - &vol-doveauth ./instance/socket/doveauth:/run/doveauth
+    depends_on:
+      generate: *dep-exit0
+      postfix: *dep-start
+      metadata: *dep-start
+      lastlogin: *dep-start
+      doveauth: *dep-start
+
+  opendkim:
+    image: git.dc09.xyz/chatmail/opendkim:latest
+    restart: unless-stopped
+    volumes:
+      - ./instance/config/opendkim:/etc/opendkim
+      - ./instance/config/dkimkeys:/etc/dkimkeys
+      - *vol-dkim
+    deploy:
+      resources:
+        limits:
+          memory: 40M
+    depends_on: &deps-gen
+      generate: &dep-exit0
+        condition: service_completed_successfully
+
+  filtermail:
+    image: git.dc09.xyz/chatmail/filtermail:latest
+    restart: unless-stopped
+    command: outgoing
+    volumes:
+      - *vol-vmail
+      - &vol-ini ./chatmail.ini:/etc/chatmail.ini:ro
+    depends_on: &deps-fm
+      generate: *dep-exit0
+      postfix: *dep-start
+
+  filtermail-incoming:
+    image: git.dc09.xyz/chatmail/filtermail:latest
+    restart: unless-stopped
+    command: incoming
+    volumes:
+      - *vol-vmail
+      - *vol-ini
+    depends_on: *deps-fm
+
+  metadata:
+    image: git.dc09.xyz/chatmail/metadata:latest
+    restart: unless-stopped
+    volumes:
+      - *vol-vmail
+      - *vol-ini
+      - *vol-metadata
+      - &vol-turn ./instance/socket/chatmail-turn:/run/chatmail-turn
+    depends_on: *deps-gen
+
+  lastlogin:
+    image: git.dc09.xyz/chatmail/lastlogin:latest
+    restart: unless-stopped
+    volumes:
+      - *vol-vmail
+      - *vol-ini
+      - *vol-lastlogin
+    depends_on: *deps-gen
+
+  doveauth:
+    image: git.dc09.xyz/chatmail/doveauth:latest
+    restart: unless-stopped
+    volumes:
+      - *vol-vmail
+      - *vol-ini
+      - *vol-doveauth
+    depends_on: *deps-gen
+
+  newemail:
+    image: git.dc09.xyz/chatmail/newemail:main
+    restart: unless-stopped
+    volumes:
+      - *vol-ini
+    ports:
+     - "127.0.0.1:8082:8080"
+    depends_on: *deps-gen
+
+  cron:
+    image: git.dc09.xyz/chatmail/cron:latest
+    restart: unless-stopped
+    volumes:
+      - *vol-vmail
+      - *vol-ini
+    depends_on: *deps-gen
+
+  chatmail-turn:
+    image: git.dc09.xyz/chatmail/turn:latest
+    restart: unless-stopped
+    # The socket lives on a bind mount, so it survives a stack restart and the
+    # next instance panics on "Failed to bind Unix socket: Address in use"
+    # (happened 2026-10-22, calls were down until 2026-10-24). Removing it first
+    # is idempotent and safe: no other process ever binds this path.
+    command: ["sh", "-c", "rm -f /run/chatmail-turn/turn.socket; exec /turn.sh"]
+    network_mode: host  # allocates random ports for TURN
+    volumes:
+      - &vol-domain ./instance/config/domain:/domain:ro
+      - *vol-turn
+    depends_on: *deps-gen
+
+  iroh-relay:
+    image: git.dc09.xyz/chatmail/iroh-relay:latest
+    restart: unless-stopped
+    ports:
+       - 127.0.0.1:3340:3340

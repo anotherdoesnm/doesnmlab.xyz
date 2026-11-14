@@ -1,0 +1,13 @@
+tcp:
+  routers:
+    frp:
+      entryPoints: [websecure]
+      rule: "HostSNI(`frp.doesnmlab.xyz`)"
+      service: frp
+      tls:
+        certResolver: myresolver
+  services:
+    frp:
+      loadBalancer:
+        servers:
+          - address: "frps:7000"
