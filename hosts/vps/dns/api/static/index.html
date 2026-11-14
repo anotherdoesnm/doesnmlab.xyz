@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DNS — doesnmlab.xyz</title>
+<style>
+  :root { color-scheme: dark; --line:#232327; --muted:#9a9a9a; --card:#17171a; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:20px 14px calc(48px + env(safe-area-inset-bottom)); background:#0d0d0f; color:#f2f2f2;
+         font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:820px; margin:0 auto; }
+  header { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:baseline; margin-bottom:18px; }
+  h1 { font-size:18px; margin:0; font-weight:600; }
+  .muted { color:var(--muted); font-size:13px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+       margin:26px 0 10px; font-weight:600; }
+
+  .rec { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:var(--card); }
+  .rec .top { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+  .type { font-weight:700; font-size:12px; letter-spacing:.04em; color:#7aa2f7; flex:none; }
+  .owner { font-size:14px; overflow-wrap:anywhere; }
+  .ttl { margin-left:auto; color:var(--muted); font-size:12px; flex:none; }
+  .value { font-size:13px; color:#c9c9c9; overflow-wrap:anywhere; }
+
+  form { display:grid; gap:10px; }
+  .grid2 { display:grid; grid-template-columns: 1fr 120px; gap:10px; }
+  input, select { background:var(--card); border:1px solid #2a2a2f; color:#f2f2f2; border-radius:9px;
+                  padding:11px 12px; font-size:15px; width:100%; }
+  button { background:#3b5bdb; color:#fff; border:0; border-radius:9px; padding:12px 16px;
+           font-size:15px; font-weight:600; cursor:pointer; width:100%; }
+  button.ghost { background:#232327; }
+  pre { background:#121215; border:1px solid var(--line); border-radius:9px; padding:12px;
+        overflow-x:auto; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .error { background:#3a1a1e; border:1px solid #6b2530; color:#ffb4bd; padding:10px 12px; border-radius:9px; margin-bottom:14px; }
+  .ok { background:#14321f; border:1px solid #245c38; color:#9ae6b4; padding:10px 12px; border-radius:9px; margin-bottom:14px; }
+  @media (min-width:640px) {
+    form { grid-template-columns: 1fr 120px 110px auto; align-items:start; }
+    .grid2 { display:contents; }
+    button { width:auto; }
+    .rdata { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>doesnmlab.xyz</h1>
+    <span class="muted" id="who"></span>
+    <span class="muted" id="serial"></span>
+  </header>
+  <div id="msg"></div>
+
+  <h2>Записи</h2>
+  <div id="records"></div>
+
+  <h2>Добавить / заменить</h2>
+  <form id="add">
+    <input name="owner" placeholder="@ или имя, напр. _verify" required autocomplete="off">
+    <div class="grid2">
+      <select name="type">
+        <option>TXT</option><option>SRV</option><option>TLSA</option>
+        <option>A</option><option>AAAA</option><option>CNAME</option><option>MX</option>
+        <option>CAA</option><option>NS</option><option>DS</option>
+      </select>
+      <input name="ttl" value="3600" inputmode="numeric" aria-label="TTL">
+    </div>
+    <input class="rdata" name="rdata" placeholder='значение, напр. "v=spf1 …"' required autocomplete="off">
+    <button type="submit">Preview</button>
+  </form>
+  <div id="preview" style="margin-top:16px"></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const msg = (html, cls = "") => { $("#msg").innerHTML = html ? `<div class="${cls}">${html}</div>` : ""; };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { credentials: "same-origin", ...opts });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.error || res.statusText); e.code = res.status; throw e; }
+  return data;
+}
+
+async function load() {
+  try {
+    const { records, serial } = await api("/records");
+    $("#serial").textContent = serial ? `serial ${serial}` : "";
+    const order = ["TXT","MX","A","AAAA","CNAME","SRV","TLSA","CAA","NS","DS"];
+    records.sort((a, b) => (order.indexOf(a.type) - order.indexOf(b.type)) || a.owner.localeCompare(b.owner));
+    $("#records").innerHTML = records.map(r => `
+      <div class="rec">
+        <div class="top">
+          <span class="type">${esc(r.type)}</span>
+          <span class="owner mono">${esc(r.owner)}</span>
+          <span class="ttl">${r.ttl}</span>
+        </div>
+        <div class="value mono">${esc(r.rdata)}</div>
+      </div>`).join("");
+  } catch (e) {
+    if (e.code === 401) { location.href = "/login"; return; }
+    msg(`Ошибка загрузки: ${esc(e.message)}`, "error");
+  }
+}
+
+function collect() {
+  const f = new FormData($("#add"));
+  return [{ owner: String(f.get("owner")).trim(), type: f.get("type"),
+            ttl: Number(f.get("ttl") || 3600), rdata: String(f.get("rdata")) }];
+}
+
+$("#add").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  msg("");
+  const records = collect();
+  try {
+    const { preview } = await api("/preview", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ records })
+    });
+    $("#preview").innerHTML = `
+      <pre>${esc(preview || "(без изменений)")}</pre>
+      <div style="display:flex;gap:10px">
+        <button id="apply">Применить</button>
+        <button class="ghost" id="cancel">Отмена</button>
+      </div>`;
+    $("#cancel").onclick = () => { $("#preview").innerHTML = ""; };
+    $("#apply").onclick = async () => {
+      const body = { records };
+      if (records.some(r => ["A","AAAA","CNAME","MX"].includes(r.type))) body.confirm = true;
+      if (records.some(r => ["NS","DS","CAA"].includes(r.type))) {
+        const typed = prompt("Эта запись отдаёт домен или ломает DNSSEC. Напиши имя зоны для подтверждения:");
+        if (typed !== "doesnmlab.xyz") { msg("Отменено: зона не подтверждена.", "error"); return; }
+        body.confirm_zone = typed;
+      }
+      try {
+        await api("/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        msg("Применено.", "ok");
+        $("#preview").innerHTML = ""; $("#add").reset(); load();
+      } catch (e) { msg(`Не применилось: ${esc(e.message)}`, "error"); }
+    };
+  } catch (e) { msg(`Preview не удался: ${esc(e.message)}`, "error"); }
+});
+
+load();
+api("/health").then(h => { $("#who").textContent = h.user ? `вошёл как ${h.user}` : ""; }).catch(() => {});
+</script>
+</body>
+</html>

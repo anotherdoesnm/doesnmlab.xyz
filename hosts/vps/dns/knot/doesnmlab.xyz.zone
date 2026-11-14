@@ -1,0 +1,20 @@
+$ORIGIN doesnmlab.xyz.
+$TTL 3600
+@ IN SOA ns1.doesnmlab.xyz. hostmaster.doesnmlab.xyz. (
+    2026111414 10800 3600 1209600 3600 )
+@ IN NS ns1.doesnmlab.xyz.
+ns1 IN A 150.241.64.73
+@ 3600 IN A 150.241.64.73
+* 3600 IN A 150.241.64.73
+mail 3600 IN A 212.192.223.99
+@ 3600 IN MX 10 mail.doesnmlab.xyz.
+_matrix-fed._tcp 3600 IN SRV 0 0 443 matrix.doesnmlab.xyz.
+_matrix._tcp 3600 IN SRV 0 0 443 matrix.doesnmlab.xyz.
+_parley._tcp 3600 IN SRV 0 0 443 parley.doesnmlab.xyz.
+@ 3600 IN TXT "v=spf1 ip4:212.192.223.99 -all"
+_dmarc 3600 IN TXT "v=DMARC1; p=quarantine; sp=quarantine; adkim=r; aspf=r; pct=100; rua=mailto:kirill@doesnmlab.xyz"
+_fluxer 3600 IN TXT "fluxer-verification=92737f46727e5d165e3ab418a80af340166eb874d87bec0e6c3114f6eb689fd1"
+_harmony 3600 IN TXT "hm1494043900845785124=181885b15ecf634fd08143492385356bcd17909ad17b850da14a19e490558f61"
+mail 3600 IN TXT "v=spf1 ip4:212.192.223.99 -all"
+mail._domainkey 3600 IN TXT "v=DKIM1; h=sha256; k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp+LySZ69SGTj39Rl+NyiA6X8rvWM4js3c0yZyJr0+WTkh8NTrRWNUqNpK97zuBe/s5SClWH04H9Q/TdjmqH7pmxUxCYIAOFjD18nP04/xl76XoUpDa3PjW+7eSklOMQaFGTcArEcS8PdbELzIfliTos/B3mW21LhL6Bp7m9tT/N0VAj5b4FnsiHW" "yOhpDJZMREqynNwN308uBrl3Iyef+Q/cTRYE/aTkOEu/Us0td6O6T9+8o3QAFvxtIWoHvjgtfX8oDnxgOoi3l49/AgHlfPJIb5t2L09L9WFsuvQnIW023gpAXpfSxLAwl3YxdQuHk+3e/26RHQ6qW0PG5day2QIDAQAB"
+mail._domainkey.mail 3600 IN TXT "v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq2a5/CqPFC8jodUEW9L0HrXVzUOPngSLhIcp300aU/ocl/dSSOq6K+spD00Ip7w8bR3n8e2rv0OMU4aWnYfYVwnj2P/q5uSLcTCaqW+sKsjONq4+r1wEQ/Av7zmHhqGqDEOUsVX/LLqprXgnrCnhccsfUgCqP36G0rAvbZQWbUkvcV/keCuAFJZ" "9nS7j+KQnoBNTrZbULKy2lE"

@@ -1,0 +1,51 @@
+# Authoritative DNS for doesnmlab.xyz + the small HTTP API over knotc.
+#
+# knot keeps the zone, the KASP keys and the control socket; dns-api is built from
+# the very same image so its knotc always matches the server version, and talks to
+# the server over a shared socket volume. Only the API is exposed, through Traefik.
+name: dns
+
+services:
+  knot:
+    image: cznic/knot:3.6.2
+    container_name: knot
+    restart: always
+    # Host networking: the server must answer on the public address, and the
+    # control socket lives on a volume both containers share.
+    network_mode: host
+    command: ["knotd", "-c", "/config/knot.conf"]
+    volumes:
+      - ./knot:/config:ro
+      - ./run:/rundir
+      - ./storage:/storage
+    healthcheck:
+      test: ["CMD", "knotc", "-s", "/rundir/knot.sock", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  dns-api:
+    build: ./api
+    container_name: dns-api
+    restart: always
+    depends_on: [knot]
+    environment:
+      KNOT_SOCKET: /rundir/knot.sock
+      ZONE: doesnmlab.xyz
+      TOKEN_FILE: /secrets/token
+      OIDC_SECRET_FILE: /secrets/oidc-secret
+      SESSION_SECRET_FILE: /secrets/session.key
+    volumes:
+      - ./run:/rundir:ro
+      - /etc/dnsapi:/secrets
+    networks: [traefik_network]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dns-api.rule=Host(`dns.doesnmlab.xyz`)
+      - traefik.http.routers.dns-api.entrypoints=websecure
+      - traefik.http.routers.dns-api.tls.certresolver=myresolver
+      - traefik.http.services.dns-api.loadbalancer.server.port=8088
+
+networks:
+  traefik_network:
+    external: true
