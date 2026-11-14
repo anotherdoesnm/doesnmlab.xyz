@@ -1,0 +1,5 @@
+#!/bin/sh
+# Rebuild and restart the twtxt bridge from the checkout at /opt/twtxt-bridge.
+set -eu
+git -C /opt/twtxt-bridge pull --ff-only
+exec docker compose -f /root/twtxt-bridge/compose.yml up -d --build

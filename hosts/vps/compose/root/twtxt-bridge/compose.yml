@@ -1,0 +1,58 @@
+# twtxt ↔ ActivityPub bridge — https://github.com/anotherdoesnm/twtxt-bridge
+# Source checkout: /opt/twtxt-bridge. Public origin: twtxt.doesnmlab.xyz.
+# Deploy: /usr/local/bin/twtxt-bridge-deploy (git pull + up -d --build).
+services:
+  bridge:
+    build: /opt/twtxt-bridge
+    container_name: twtxt-bridge
+    restart: unless-stopped
+    environment:
+      # Base for the actor id, every feed URL, and the `# url` line inside a
+      # feed — which feeds the twtxt hash. Never change it once people subscribe.
+      BASE_URL: ${TWTXT_BRIDGE_BASE_URL}
+      BRIDGE_ACTOR: bridge
+      PORT: "8000"
+      DATA_DIR: /data
+      MAX_CONCURRENT: "3"
+      MAX_CACHE_ENTRIES: "300"
+      RATE_PER_MIN: "20"
+    volumes:
+      - bridge-data:/data
+    networks:
+      - traefik_network
+    # Idles around 50 MB; the limit is only there to keep the box predictable.
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_network"
+      - "traefik.http.routers.twtxt.rule=Host(`twtxt.doesnmlab.xyz`)"
+      # The catch-all HostRegexp for *.doesnmlab.xyz has priority 1 and would
+      # otherwise send this name to YunoHost through the frp tunnel.
+      - "traefik.http.routers.twtxt.priority=100"
+      - "traefik.http.routers.twtxt.entrypoints=web"
+      - "traefik.http.routers.twtxt.middlewares=twtxt-https"
+      - "traefik.http.routers.twtxt-secure.rule=Host(`twtxt.doesnmlab.xyz`)"
+      - "traefik.http.routers.twtxt-secure.priority=100"
+      - "traefik.http.routers.twtxt-secure.entrypoints=websecure"
+      - "traefik.http.routers.twtxt-secure.tls=true"
+      - "traefik.http.routers.twtxt-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.twtxt-secure.service=twtxt"
+      - "traefik.http.services.twtxt.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.twtxt-https.redirectscheme.scheme=https"
+
+volumes:
+  bridge-data:
+    # Explicit name: the signing key lives here, and a project rename must not
+    # silently mint a new one.
+    name: twtxt-bridge-data
+
+networks:
+  traefik_network:
+    external: true
