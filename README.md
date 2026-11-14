@@ -38,8 +38,9 @@ On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listen
 refreshes the dn42 ROA table), **knot** (authoritative DNS for `doesnmlab.xyz`),
 **dns-api** (`knotc` over HTTP), **mika.service** (ipip tunnel + policy routing).
 
-`compose/historical/` holds an older synapse + inspircd setup that is not deployed —
-kept only because the files explain what used to be there.
+Source checkouts under `/root` (for example the `heisenbridge` clones with their
+own `docker-compose.yml` test harness) are **not** infra and are not in this repo —
+what matters about them is the image tag that runs, not the checkout.
 
 ## Restoring vps
 
@@ -56,7 +57,6 @@ kept only because the files explain what used to be there.
 |---|---|
 | `PARLEY_OIDC_CLIENT_SECRET` | parley |
 | `TUWUNEL_REGISTRATION_TOKEN`, `TUWUNEL_IDENTITY_PROVIDER__0__CLIENT_SECRET`, `TUWUNEL_EMERGENCY_PASSWORD` | tuwunel |
-| `INSP_OPER_PASSWORD_HASH` | historical pc/pc2 |
 
 Never in git either: `/etc/dnsapi/{token,oidc-secret,session.key}`, `/root/desec.env`,
 `/root/certs/acme.json`, `/root/frp/token.txt`, `/root/.ssh/`.
