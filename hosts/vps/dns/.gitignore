@@ -1,2 +1,4 @@
 run/
 storage/
+knot/knot.conf
+tsig-acme
