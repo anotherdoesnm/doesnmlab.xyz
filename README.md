@@ -49,6 +49,15 @@ git. API routing is declared with Docker labels, not a Traefik file.
 The container migration kept the same keys: KSK `20730`, ZSK `32847`. A DS record
 for `20730` is what has to be published at the registrar when the delegation moves.
 
+`knot/knot.conf` is generated: `./render.sh` fills the ACME TSIG secret from
+`./tsig-acme` (never in git). Traefik has an `rfc2136` resolver that writes
+`_acme-challenge` into this Knot over that key — the replacement for the deSEC DNS
+challenge once the zone stops being served by deSEC.
+
+The rfc2136 path can only be validated **after** the delegation switches: Let's
+Encrypt queries the authoritative servers, and until then those are deSEC's. Until
+the switch, deSEC keeps renewing the wildcard.
+
 Source checkouts under `/root` (for example the `heisenbridge` clones with their
 own `docker-compose.yml` test harness) are **not** infra and are not in this repo —
 what matters about them is the image tag that runs, not the checkout.
