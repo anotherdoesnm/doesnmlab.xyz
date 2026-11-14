@@ -7,6 +7,9 @@ set -eu
 src=/opt/twtxt-bridge
 tmp="${src}.new"
 
+# The volume holds the actor signing key; creating it is idempotent.
+docker volume create twtxt-bridge-data >/dev/null
+
 rm -rf "$tmp"
 mkdir -p "$tmp"
 curl -fsSL https://github.com/anotherdoesnm/twtxt-bridge/archive/refs/heads/main.tar.gz \

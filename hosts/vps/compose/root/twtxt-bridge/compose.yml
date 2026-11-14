@@ -49,8 +49,9 @@ services:
 
 volumes:
   bridge-data:
-    # Explicit name: the signing key lives here, and a project rename must not
-    # silently mint a new one.
+    # Created by the deploy script. Explicit name: the signing key lives here,
+    # and a project rename must not silently mint a new one.
+    external: true
     name: twtxt-bridge-data
 
 networks:
