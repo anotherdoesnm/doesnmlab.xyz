@@ -1,0 +1,18 @@
+# The mail relay. Host networking on purpose: it must listen on the white IP
+# 212.192.223.99, bind its outbound connections to that address, and reach the
+# home tunnel that sshd forwards to 127.0.0.1:10025.
+name: mail
+
+services:
+  relay:
+    build: .
+    container_name: mail-relay
+    restart: always
+    network_mode: host
+    volumes:
+      - ./data/spool:/var/spool/postfix
+      - ./data/lib:/var/lib/postfix
+      - ./data/mail:/var/mail
+      - ./data/log:/var/log
+      - /etc/sasldb2:/secrets/sasldb2:ro
+      - /etc/ssl/postfix:/etc/ssl/postfix:ro

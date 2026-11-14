@@ -37,6 +37,22 @@ On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listen
 `212.192.223.99`), **saslauthd**, **bird** (BGP, keeps the white IP's routes and
 refreshes the dn42 ROA table), **mika.service** (ipip tunnel + policy routing).
 
+## Mail
+
+`mail/` is the relay container: Debian postfix + saslauthd on host networking (it
+must listen on the white IP `212.192.223.99` and reach the home tunnel that sshd
+forwards to `127.0.0.1:10025`). The configuration is **baked into the image**, not
+mounted over `/etc/postfix`: a bind mount hides the image's `dynamicmaps.cf`, and
+Debian registers `cdb` support through that file.
+
+Volumes: `data/spool`, `data/lib`, `data/mail`, `data/log` (postfix logs to
+`maillog_file`, there is no syslog in the container), plus `/etc/ssl/postfix` for TLS
+and `/secrets/sasldb2` — the SASL database is copied in with the container's own
+group id, because a bind mount keeps the host's and smtpd cannot read it.
+
+Rollback while the host package is still installed: `docker compose down` in
+`mail/`, then `systemctl start postfix saslauthd`.
+
 ## DNS
 
 `dns/` is a compose project of its own: **knot** (authoritative for
