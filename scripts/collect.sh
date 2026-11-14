@@ -6,8 +6,6 @@ set -eu
 cd "$(dirname "$0")/.."
 
 ssh_vps()  { ssh vps "$@"; }
-ssh_us200() { ssh -i ../.tools/keys/us200_ed25519 -o StrictHostKeyChecking=no root@45.158.196.56 "$@"; }
-ssh_fi200() { ssh -i ../.tools/keys/finka_ed25519 -o StrictHostKeyChecking=no root@45.94.47.109 "$@"; }
 
 collect_compose() {  # host sshfn
     host=$1; fn=$2
@@ -20,6 +18,4 @@ collect_compose() {  # host sshfn
 }
 
 collect_compose vps ssh_vps
-collect_compose us200 ssh_us200
-collect_compose fi200 ssh_fi200
 echo "collected; now review: git diff"
