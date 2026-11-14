@@ -37,6 +37,37 @@ On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listen
 `212.192.223.99`), **saslauthd**, **bird** (BGP, keeps the white IP's routes and
 refreshes the dn42 ROA table), **mika.service** (ipip tunnel + policy routing).
 
+## DSH Web UI (skynet)
+
+The harness is served by `dsh-web.service` → `/usr/local/bin/dsh-web-run.sh`, which
+starts `/bin/dsh --profile web --host 127.0.0.1 --port 3080` behind nginx
+(`sites-enabled/skynet`, port 8443) and writes the launch token into
+`/etc/nginx/dsh_token.inc` so the vhost can redirect `/?token=…` without anyone
+pasting it.
+
+**`--trusted-host` must list every authority the UI is reached by.** It is not
+authentication (that is the token) but a separate browser-trust fence on `/api`.
+A missing authority returns 403 to every API call, after which the client cannot
+obtain `remoteAccess` and the page dies with:
+
+```
+Failed to load plugins — web boot: 3 required entries did not activate
+… pending (waiting for service: remoteAccess / uiSession / uiWorkspace …)
+```
+
+The launcher therefore trusts the hostname and the LAN IP forms:
+
+```
+--trusted-host skynet.doesnmlab.xyz --trusted-host 192.168.1.30
+--trusted-host 192.168.1.30:8443 --trusted-host 192.168.1.30:3080
+```
+
+Checking it without a browser: `curl -sk -H 'Host: <authority>' https://127.0.0.1:8443/api/plugins`
+returns 401 (fence passed, needs cookie) rather than 403.
+
+Upgrading DSH (`npm i -g @deepseek-ai/dsh@<version>`) needs `systemctl restart dsh-web`
+plus a hard reload in the browser, because client bundles are cached by revision.
+
 ## Mail
 
 `mail/` is the relay container: Debian postfix + saslauthd on host networking (it
