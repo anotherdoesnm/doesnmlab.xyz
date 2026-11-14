@@ -71,13 +71,21 @@ def knotc(*args):
 
 
 def list_records():
+    """Read the zone as served.
+
+    Knot 3.5 prints each line as "[zone.] owner ttl TYPE rdata", 3.6 (and the
+    socket path generally) prints "owner ttl TYPE rdata". Both are handled, and
+    DNSSEC housekeeping types are dropped: they are regenerated, not managed.
+    """
     rows = []
-    for line in knotc("zone-read", ZONE).splitlines():
-        line = line.strip()
-        if not line.startswith("["):
+    for raw in knotc("zone-read", ZONE).splitlines():
+        line = raw.strip()
+        if not line or line.startswith(";"):
             continue
-        parts = line.split("]", 1)[1].strip().split(None, 3)
-        if len(parts) < 4:
+        if line.startswith("["):
+            line = line.split("]", 1)[1].strip()
+        parts = line.split(None, 3)
+        if len(parts) < 4 or not parts[1].isdigit():
             continue
         owner, ttl, rtype, rdata = parts
         if rtype in ("RRSIG", "NSEC", "NSEC3", "DNSKEY", "CDS", "CDNSKEY", "SOA"):

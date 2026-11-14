@@ -35,8 +35,19 @@ hosts/<host>/
 
 On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listens on
 `212.192.223.99`), **saslauthd**, **bird** (BGP, keeps the white IP's routes and
-refreshes the dn42 ROA table), **knot** (authoritative DNS for `doesnmlab.xyz`),
-**dns-api** (`knotc` over HTTP), **mika.service** (ipip tunnel + policy routing).
+refreshes the dn42 ROA table), **mika.service** (ipip tunnel + policy routing).
+
+## DNS
+
+`dns/` is a compose project of its own: **knot** (authoritative for
+`doesnmlab.xyz`, image `cznic/knot:v3.6.2`, host networking so it answers on the
+public address) and **dns-api** (HTTP over `knotc`, built *from the same image* so
+its `knotc` always matches the server). The two share `./run` for the control
+socket; the zone and its KASP keys live in `./knot` and `./storage`, both ignored by
+git. API routing is declared with Docker labels, not a Traefik file.
+
+The container migration kept the same keys: KSK `20730`, ZSK `32847`. A DS record
+for `20730` is what has to be published at the registrar when the delegation moves.
 
 Source checkouts under `/root` (for example the `heisenbridge` clones with their
 own `docker-compose.yml` test harness) are **not** infra and are not in this repo —

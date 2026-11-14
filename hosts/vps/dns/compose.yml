@@ -7,7 +7,7 @@ name: dns
 
 services:
   knot:
-    image: cznic/knot:3.6.2
+    image: cznic/knot:v3.6.2
     container_name: knot
     restart: always
     # Host networking: the server must answer on the public address, and the
