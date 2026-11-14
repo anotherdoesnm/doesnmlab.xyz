@@ -2,13 +2,23 @@
 # /storage), so the same file works on any host running this compose project.
 server:
     rundir: "/rundir"
-    listen: 150.241.64.73@53
+    listen: [ 150.241.64.73@53, 172.18.0.1@53 ]
     automatic-acl: on
     user: root
 
 log:
   - target: stdout
     any: info
+
+key:
+  - id: acme
+    algorithm: hmac-sha256
+    secret: __TSIG_SECRET__
+
+acl:
+  - id: acme-update
+    key: acme
+    action: update
 
 database:
     storage: "/storage"
@@ -33,6 +43,7 @@ zone:
     file: "/config/doesnmlab.xyz.zone"
     dnssec-signing: on
     dnssec-policy: default
+    acl: acme-update
     zonefile-sync: -1
     journal-content: all
     zonefile-load: difference-no-serial
