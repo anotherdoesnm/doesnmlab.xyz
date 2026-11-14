@@ -1,5 +1,19 @@
 #!/bin/sh
-# Rebuild and restart the twtxt bridge from the checkout at /opt/twtxt-bridge.
+# Rebuild and restart the twtxt bridge from the upstream tarball.
+# Deliberately no git: this box has none, and installing packages there has
+# broken dependency chains before.
 set -eu
-git -C /opt/twtxt-bridge pull --ff-only
+
+src=/opt/twtxt-bridge
+tmp="${src}.new"
+
+rm -rf "$tmp"
+mkdir -p "$tmp"
+curl -fsSL https://github.com/anotherdoesnm/twtxt-bridge/archive/refs/heads/main.tar.gz \
+  | tar -xz -C "$tmp" --strip-components=1
+
+rm -rf "${src}.old"
+if [ -d "$src" ]; then mv "$src" "${src}.old"; fi
+mv "$tmp" "$src"
+
 exec docker compose -f /root/twtxt-bridge/compose.yml up -d --build

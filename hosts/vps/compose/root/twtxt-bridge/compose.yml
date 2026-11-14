@@ -1,6 +1,6 @@
 # twtxt ↔ ActivityPub bridge — https://github.com/anotherdoesnm/twtxt-bridge
 # Source checkout: /opt/twtxt-bridge. Public origin: twtxt.doesnmlab.xyz.
-# Deploy: /usr/local/bin/twtxt-bridge-deploy (git pull + up -d --build).
+# Deploy: /usr/local/bin/twtxt-bridge-deploy (tarball fetch + up -d --build).
 services:
   bridge:
     build: /opt/twtxt-bridge
