@@ -1,0 +1,18 @@
+# frps publishes no ports: it sits in traefik_network behind Traefik, which only routes
+# HTTP(S). Minecraft speaks a raw TCP protocol, so this sidecar publishes 25565 and hands
+# it to the frp tunnel (frpc on nexus registers "minecraft" -> 192.168.1.61:25565 as
+# remotePort 10050).
+services:
+  mc-proxy:
+    image: alpine:latest
+    container_name: mc-proxy
+    restart: unless-stopped
+    command: sh -c "apk add --no-cache socat >/dev/null 2>&1 && exec socat -d TCP-LISTEN:25565,fork,reuseaddr TCP:frps:10050"
+    ports:
+      - "25565:25565"
+    networks:
+      - traefik_network
+
+networks:
+  traefik_network:
+    external: true

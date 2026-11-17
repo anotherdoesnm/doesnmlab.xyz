@@ -1,0 +1,16 @@
+# The public side: what players connect to. lazymc answers status while the server
+# sleeps and starts it on the first join.
+[public]
+address = "0.0.0.0:25565"
+version = "1.7.10"
+protocol = 5
+
+# The real server, started and stopped by lazymc. Port differs from the public one.
+[server]
+address = "127.0.0.1:25566"
+directory = "/srv/minecraft"
+command = "/opt/java8/bin/java -Xms512M -Xmx1536M -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar server.jar nogui"
+
+# Stop the JVM after five idle minutes; wake on the first connection.
+[time]
+sleep_after = 300

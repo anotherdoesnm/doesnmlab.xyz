@@ -1,0 +1,16 @@
+[Unit]
+Description=lazymc — Minecraft proxy that starts the server on demand
+After=network-online.target
+
+[Service]
+Type=simple
+User=minecraft
+WorkingDirectory=/srv/minecraft
+ExecStart=/usr/local/bin/lazymc -c /etc/lazymc.toml
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
