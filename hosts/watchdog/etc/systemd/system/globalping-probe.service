@@ -1,0 +1,17 @@
+[Unit]
+Description=Globalping probe
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=globalping
+Group=globalping
+WorkingDirectory=/opt/globalping-probe
+Environment=NODE_ENV=production
+Environment=GP_PROBE_UUID=5016f3ea-a5b0-49f5-96ab-673f58e9b0e1
+ExecStart=/bin/node dist/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

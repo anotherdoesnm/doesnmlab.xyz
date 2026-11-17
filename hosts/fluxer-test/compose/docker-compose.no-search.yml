@@ -1,0 +1,41 @@
+# Run Fluxer without any search backend (no Meilisearch container).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.proxy.yml \
+#                  -f docker-compose.no-search.yml up -d
+#
+# Why this is more than "just don't start meilisearch": with
+# FLUXER_SEARCH_ENGINE=meilisearch the API builds a real Meilisearch provider and
+# SearchFactory.initializeSearch() rethrows on failure, APILifecycle rethrows again,
+# and App.ts does `main().catch(... process.exit(1))` — so an unreachable Meilisearch
+# is a fatal start-up error, not a degraded mode.
+#
+# The supported way to have no search is the Elasticsearch branch with no
+# credentials: SearchFactory logs "Elasticsearch credentials are not configured;
+# search will be unavailable", builds `new SearchProvider(null)` and start-up
+# succeeds. Search endpoints then answer 403 FEATURE_TEMPORARILY_DISABLED and the
+# indexing tasks skip because every getter returns null.
+#
+# Compose hardcodes the API's key as ${MEILI_MASTER_KEY}, so it has to be blanked
+# per service; keep MEILI_MASTER_KEY in .env anyway so Compose can expand it.
+#
+# Put FLUXER_SEARCH_ENGINE=elasticsearch in .env as well.
+
+services:
+  meilisearch:
+    profiles: [bundled-search]
+
+  api:
+    depends_on:
+      meilisearch: !reset null
+    environment:
+      FLUXER_SEARCH_ENGINE: none
+      FLUXER_SEARCH_API_KEY: ""
+      FLUXER_SEARCH_USERNAME: ""
+
+  worker:
+    depends_on:
+      meilisearch: !reset null
+    environment:
+      FLUXER_SEARCH_ENGINE: none
+      FLUXER_SEARCH_API_KEY: ""
+      FLUXER_SEARCH_USERNAME: ""

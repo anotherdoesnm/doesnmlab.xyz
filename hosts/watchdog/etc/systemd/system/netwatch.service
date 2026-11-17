@@ -1,0 +1,12 @@
+[Unit]
+Description=netwatch: sample reachability of homelab endpoints to catch DPI block windows
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/netwatch.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

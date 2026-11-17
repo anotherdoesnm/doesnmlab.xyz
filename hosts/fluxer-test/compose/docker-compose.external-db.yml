@@ -1,0 +1,19 @@
+# Use an external PostgreSQL (FLUXER_POSTGRES_HOST/POSTGRES_PASSWORD) and do not
+# run the bundled one. Compose passes POSTGRES_PASSWORD to every service as
+# FLUXER_POSTGRES_PASSWORD, so it must be the external role password.
+services:
+  postgres:
+    profiles: [bundled-postgres]
+
+  api:
+    depends_on:
+      postgres: !reset null
+  worker:
+    depends_on:
+      postgres: !reset null
+  users:
+    depends_on:
+      postgres: !reset null
+  messages:
+    depends_on:
+      postgres: !reset null

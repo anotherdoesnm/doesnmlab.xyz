@@ -1,0 +1,11 @@
+# Point the API's search at the worker's Meilisearch-compatible shim instead of a
+# Meilisearch process: docker-compose.no-search.yml disables search with
+# FLUXER_SEARCH_ENGINE=none, and this file (loaded after it) turns it back on with
+# the engine name the API knows, but at the worker's HTTP port.
+services:
+  api:
+    environment:
+      FLUXER_SEARCH_ENGINE: meilisearch
+      FLUXER_SEARCH_URL: http://fluxer-worker-lite:9099
+      FLUXER_SEARCH_API_KEY: ""
+      FLUXER_SEARCH_USERNAME: ""
