@@ -1,8 +1,13 @@
-# SokobotNET for fluxer.com. No ports and no volumes: the bot only opens outbound
-# HTTPS/WebSocket connections to the gateway, so nothing has to be exposed.
+# SokobotNET for fluxer.com. No ports: the bot only opens outbound HTTPS/WebSocket
+# connections to the gateway, so nothing has to be exposed.
 services:
   sokobot:
     image: ghcr.io/anotherdoesnm/sokobotnet:master
     container_name: sokobot
     restart: unless-stopped
     env_file: .env
+    volumes:
+      # Per-guild prefixes live in SQLite here. The image runs as uid 1000, and a bind
+      # mount carries the host's ownership: the directory must be 1000:1000, otherwise
+      # SQLite fails with "unable to open database file".
+      - /root/sokobot/data:/data

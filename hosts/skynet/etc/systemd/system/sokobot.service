@@ -5,6 +5,9 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/sokobot
+# The SQLite file lives here; ProtectSystem=strict makes everything else read-only.
+StateDirectory=sokobot
+ReadWritePaths=/var/lib/sokobot
 EnvironmentFile=/opt/sokobot/.env
 ExecStart=/opt/sokobot/run.sh
 Restart=on-failure
