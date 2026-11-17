@@ -1,0 +1,8 @@
+# SokobotNET for fluxer.com. No ports and no volumes: the bot only opens outbound
+# HTTPS/WebSocket connections to the gateway, so nothing has to be exposed.
+services:
+  sokobot:
+    image: ghcr.io/anotherdoesnm/sokobotnet:master
+    container_name: sokobot
+    restart: unless-stopped
+    env_file: .env
