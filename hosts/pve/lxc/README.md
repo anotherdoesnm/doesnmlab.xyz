@@ -14,8 +14,9 @@ that used to live only in `docs/topology.md`.
 
 Two details worth not rediscovering:
 
-- **`111 skynet` is privileged** (it has no `unprivileged: 1` line) and mounts
-  `/dev/net/tun`, because it runs an AmneziaWG tunnel.
+- **All five are unprivileged.** `111 skynet` additionally gets `/dev/net/tun` through
+  `dev0` — an unprivileged container cannot create the tun node itself, and the
+  AmneziaWG tunnel needs it.
 - **`150 fluxer-test` sits at .60**, not the .109 written in older notes.
 
 The MAC addresses are part of the definition on purpose: the LAN reserves addresses
