@@ -1,0 +1,20 @@
+server {
+    listen 8443 ssl;
+    server_name skynet.doesnmlab.xyz;
+    absolute_redirect off;
+
+    ssl_certificate     /etc/nginx/selfsigned.crt;
+    ssl_certificate_key /etc/nginx/selfsigned.key;
+
+    location = / {
+        include /etc/nginx/dsh_token.inc;
+        if ($dsh_redirect = 1) {
+            return 302 /?token=$dsh_launch_token;
+        }
+        include /etc/nginx/snippets/dsh_proxy.conf;
+    }
+
+    location / {
+        include /etc/nginx/snippets/dsh_proxy.conf;
+    }
+}

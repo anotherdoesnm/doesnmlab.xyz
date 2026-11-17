@@ -1,0 +1,16 @@
+[Unit]
+Description=LAN NAT through the AmneziaWG tunnel (awg0)
+# The rules belong to the tunnel, so wait for it; nothing here is needed before it.
+After=network-online.target awg-quick@awg0.service
+Wants=awg-quick@awg0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Deleting first keeps the unit idempotent: the table is ours and ours alone.
+ExecStartPre=-/usr/sbin/nft delete table ip nat
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/lan-nat.nft
+ExecStop=-/usr/sbin/nft delete table ip nat
+
+[Install]
+WantedBy=multi-user.target

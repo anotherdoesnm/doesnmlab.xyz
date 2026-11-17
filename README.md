@@ -9,6 +9,15 @@ deliberately out of scope.
 
 ## Layout
 
+Three layers, from the metal up:
+
+- `hosts/pve/lxc/` — container definitions (cores, memory, disk, network, onboot),
+  one `pct config` per container, plus scripts to dump and recreate them;
+- `hosts/<host>/` — the host layer: `bootstrap.sh` and the files it installs
+  (nginx, sshd, sysctl, nftables, systemd units);
+- `hosts/<host>/compose/` — the application layer: compose files and their configs.
+
+
 ```
 hosts/<host>/
   compose/        docker compose files, exactly as deployed

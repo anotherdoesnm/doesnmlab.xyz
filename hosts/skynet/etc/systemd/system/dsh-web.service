@@ -1,0 +1,16 @@
+[Unit]
+Description=DeepSeek Harness (dsh) Web UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=/root
+EnvironmentFile=-/etc/dsh-web.env
+WorkingDirectory=/root/workspace
+ExecStart=/usr/local/bin/dsh-web-run.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

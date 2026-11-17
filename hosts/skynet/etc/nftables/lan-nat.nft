@@ -1,0 +1,13 @@
+# Masquerade forwarded LAN traffic on the tunnel interface. Without it the packets
+# leave with a 192.168.1.x source and nothing routes the answer back.
+#
+# Deliberately not part of /etc/nftables.conf: that file starts with `flush ruleset`,
+# and reloading it would wipe the wg-quick tables the tunnel depends on. A separate
+# oneshot unit (lan-nat.service) applies this after awg0 exists, and deletes the table
+# first so re-running is idempotent.
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "awg0" ip saddr 192.168.1.0/24 counter masquerade
+    }
+}
