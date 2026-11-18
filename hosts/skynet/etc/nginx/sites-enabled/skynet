@@ -1,6 +1,8 @@
 server {
     listen 8443 ssl;
     server_name skynet.doesnmlab.xyz;
+    # nginx defaults to 1 MB, which turned every file upload over a megabyte into a 413.
+    client_max_body_size 100m;
     absolute_redirect off;
 
     ssl_certificate     /etc/nginx/selfsigned.crt;
