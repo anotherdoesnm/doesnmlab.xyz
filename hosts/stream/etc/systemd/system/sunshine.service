@@ -1,0 +1,14 @@
+[Unit]
+Description=Sunshine game stream host
+After=xvfb.service network-online.target
+Wants=xvfb.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/sunshine
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

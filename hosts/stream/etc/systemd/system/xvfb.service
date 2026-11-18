@@ -1,0 +1,11 @@
+[Unit]
+Description=Xvfb virtual display :0 for Sunshine
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/Xvfb :0 -screen 0 1280x720x24 +extension GLX +render -noreset
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
