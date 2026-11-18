@@ -40,3 +40,15 @@ while `curl -I` happily succeeds.
 - `online-mode=true`: the server checks Mojang sessions, so pirated clients cannot join.
 - The audit of the public port: `mc-proxy` on the VPS is a socat container in
   `traefik_network`, because Traefik only routes HTTP(S) and frps publishes no ports.
+
+## External access: as of 2026-11-18, plain Traefik TCP
+
+The socat sidecar is gone. Traefik has a `minecraft` entrypoint on `:25565` and a TCP
+router (`hosts/vps/etc/traefik/minecraft.yml`) whose service is `frps:10050` — the port
+frpc on nexus exposes for this container. Plain TCP has no SNI, hence `HostSNI(*)`.
+
+Order matters when recreating Traefik: `docker compose up -d traefik` first *fails* if
+something else still holds 25565 (the sidecar), and the half-created container comes up
+with no port bindings at all — every site behind Traefik returns 502, and `docker compose
+up -d` will happily just *start* that crippled container. Use `--force-recreate` after
+freeing the port.

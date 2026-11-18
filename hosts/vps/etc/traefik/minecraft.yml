@@ -1,0 +1,17 @@
+# Minecraft through the frp tunnel. Traefik cannot reach the LAN, and frps is the only
+# thing on this host that can, so the TCP service points at frps:10050 — the port that
+# frpc on nexus exposes for 192.168.1.61:25565.
+tcp:
+  routers:
+    minecraft:
+      entryPoints:
+        - minecraft
+      # Plain TCP: there is no SNI to match on, and this entrypoint serves one game.
+      rule: HostSNI(`*`)
+      service: minecraft
+
+  services:
+    minecraft:
+      loadBalancer:
+        servers:
+          - address: "frps:10050"

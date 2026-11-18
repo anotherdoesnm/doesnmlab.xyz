@@ -11,6 +11,9 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.ircsecure.address=:6697"
+      # Minecraft speaks raw TCP: no SNI, no Host header. The router lives in
+      # /traefik/minecraft.yml and points at the frp tunnel, not at a container.
+      - "--entrypoints.minecraft.address=:25565"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.directory=/traefik"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
@@ -31,6 +34,7 @@ services:
       - "80:80"
       - "443:443"
       - "6697:6697"
+      - "25565:25565"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./certs:/letsencrypt
