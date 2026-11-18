@@ -57,32 +57,6 @@ services:
             - "homepage.icon=matrix.png"
         networks:
          - traefik_network
-    ap-bridge:
-      image: ghcr.io/haven-organization/matrix-appservice-activitypub:latest
-      restart: unless-stopped
-      environment:
-        BRIDGE_CONFIG: /config/config.yaml
-      volumes:
-       - ./ap-bridge.yaml:/config/config.yaml:ro
-       - ./ap-bridge-data:/data:z
-      networks:
-       - traefik_network
-      labels:
-       - "traefik.enable=true"
-       - "traefik.http.middlewares.https-redirect.redirectScheme.scheme=https"
-       - "traefik.http.routers.ap-bridge.entrypoints=web"
-       - "traefik.http.routers.ap-bridge.rule=Host(`ap-bridge.doesnmlab.xyz`)"
-       - "traefik.http.routers.ap-bridge.middlewares=https-redirect"
-       - "traefik.http.routers.ap-bridge-secure.entrypoints=websecure"
-       - "traefik.http.routers.ap-bridge-secure.rule=Host(`ap-bridge.doesnmlab.xyz`)"
-       - "traefik.http.routers.ap-bridge-secure.tls=true"
-       - "traefik.http.routers.ap-bridge-secure.service=ap-bridge"
-       - "traefik.http.services.ap-bridge.loadbalancer.server.port=8090"
-       - "traefik.http.routers.ap-bridge-secure.tls.certresolver=myresolver"
-       - "homepage.name=MAAP"
-       - "homepage.group=Communication"
-       - "homepage.description=Matrix-Fediverse bridge"
-       - "homepage.href=https://ap-bridge.doesnmlab.xyz"
     heisenbridge:
        image: ghcr.io/anotherdoesnm/heisenbridge
        restart: always

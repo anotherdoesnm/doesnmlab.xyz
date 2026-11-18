@@ -39,7 +39,6 @@ hosts/<host>/
 | `root-auth-1` | `ghcr.io/kivraid/kivraid` | authentication |
 | `matrix-homeserver-1` | `jevolk/tuwunel` | Matrix homeserver (Rust) |
 | `matrix-heisenbridge-1` | `ghcr.io/anotherdoesnm/heisenbridge` | IRC ↔ Matrix bridge |
-| `matrix-ap-bridge-1` | `ghcr.io/haven-organization/matrix-appservice-activitypub` | AP ↔ Matrix (MAAP) |
 | `irc-parley-1` | `prologic/parley` | IRC network |
 
 On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listens on
