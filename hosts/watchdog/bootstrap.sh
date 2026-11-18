@@ -22,8 +22,10 @@ say "netwatch: the DPI sampler"
 put "$here/usr/local/bin/netwatch.py" /usr/local/bin/netwatch.py 755
 put "$here/etc/systemd/system/netwatch.service" /etc/systemd/system/netwatch.service
 run systemctl daemon-reload
-run systemctl enable netwatch
-run systemctl restart netwatch
+# Installed but deliberately NOT enabled: as of 2026-11-18 the sampler is off.
+# US-200 sits behind an ICMP static ban, so half the rows read "route gone" for a
+# healthy host, and the CSV taught us to ignore its own alerts.
+run systemctl disable --now netwatch 2>/dev/null || true
 
 say "done"
 printf '%s\n' \
