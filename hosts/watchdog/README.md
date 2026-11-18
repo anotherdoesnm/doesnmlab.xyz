@@ -25,3 +25,17 @@ first column reads like an outage on a healthy host, and the file had 100k rows 
 
 `bootstrap.sh` still installs the unit but leaves it disabled — the script and the unit
 stay in the repository for the next time a DPI question comes up.
+
+## cheburprobe stays (2026-11-18)
+
+A Telegram post argued against Cheburcheck: sites "died" days after being checked, the
+site is not banned while its analogues are, and it is hosted in Russia (188.120.251.237).
+
+Checked rather than repeated: the service is open source (Rust/Rocket, BSD-3) and the
+`probe` agent we run is a measurement node, not a scanner of the sites themselves; the
+"died after a check" claim is correlation — its audience checks what is already in the
+registry. The real unknown is not the code but who queries what, which lives server-side.
+
+We keep the probe: it costs this container nothing, nothing depends on it, and the only
+exposure is that the homelab IP appears as a measurement point. If that ever stops being
+acceptable, `systemctl disable --now cheburprobe` is the whole removal.
