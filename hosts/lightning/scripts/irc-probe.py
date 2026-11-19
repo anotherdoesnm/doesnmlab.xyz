@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Minimal IRC client: SASL PLAIN login, join channels, invite the bridge bot."""
-import base64, socket, sys, time
+import base64, os, socket, sys, time
 
 HOST, PORT = "172.18.0.2", 6667
 NICK = sys.argv[1]
-TOKEN = sys.argv[2]
+TOKEN = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("IRC_TOKEN", "")
 CHANNELS = sys.argv[3].split(",")
 INVITE = sys.argv[4] if len(sys.argv) > 4 else ""
 
