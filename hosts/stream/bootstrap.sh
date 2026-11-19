@@ -14,7 +14,7 @@ apt-get update -qq
 
 # Debian 13 only: the package wants libc6 >= 2.38 and the t64 package names. On bookworm
 # the install fails on dependencies, so the container has to come from the trixie template.
-apt-get install -y -qq curl ca-certificates xvfb x11-utils xinput joystick evtest
+apt-get install -y -qq curl ca-certificates xvfb x11-utils xinput xdotool joystick evtest
 
 if [ ! -f "/tmp/${SUNSHINE_DEB}" ]; then
     curl -fsSL -o "/tmp/${SUNSHINE_DEB}" "${SUNSHINE_URL}"
@@ -26,8 +26,10 @@ cp etc/sunshine/sunshine.conf /root/.config/sunshine/sunshine.conf
 
 cp etc/systemd/system/xvfb.service /etc/systemd/system/
 cp etc/systemd/system/sunshine.service /etc/systemd/system/
+cp etc/systemd/system/hatbridge.service /etc/systemd/system/
+install -m755 usr/local/bin/hatbridge.py /usr/local/bin/hatbridge.py
 systemctl daemon-reload
-systemctl enable --now xvfb sunshine
+systemctl enable --now xvfb sunshine hatbridge
 
 echo "Sunshine is up: https://<container-ip>:47990"
 echo "Set the web password once with: sunshine --creds <user> <password>"
