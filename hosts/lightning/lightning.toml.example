@@ -1,0 +1,29 @@
+# lightning bridge: IRC <-> Fluxer, no Matrix in the path.
+database      = "/root/lightning/lightning.db"
+database_type = "sqlite"
+prefix        = "!"
+addr          = ":5991"
+host          = "http://150.241.64.73:5991"
+
+[[plugins]]
+type = "irc"
+name = "parley"
+  [plugins.config]
+  server   = "irc.example.net:6697"
+  tls      = "true"
+  nick     = "lightning"
+  # Without draft/relaymsg the bot can only send as itself; hide_author drops the
+  # "[nick]: " prefix so the channel reads like plain conversation.
+  hide_author = "true"
+  # sasl_user = ""
+  # sasl_pass = ""
+
+[[plugins]]
+type = "discord"          # the discord plugin also speaks Fluxer's v1 API
+name = "fluxer"
+  [plugins.config]
+  api_host  = "fluxer.doesnmlab.xyz"
+  cdn_host  = "fluxer.doesnmlab.xyz"
+  frontend  = "fluxer.doesnmlab.xyz"
+  is_fluxer = "true"
+  token     = "<bot token>"

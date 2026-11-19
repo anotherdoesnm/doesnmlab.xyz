@@ -1,0 +1,16 @@
+[Unit]
+Description=lightning bridge bot (IRC <-> Fluxer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/lightning
+ExecStart=/root/lightning/lightning
+Restart=on-failure
+RestartSec=5
+# The bot is small; the cap keeps it from becoming the reason the VPS swaps.
+MemoryMax=192M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+diff -ruN lightning-src.orig/pkg/platforms/irc/client.go lightning-src/pkg/platforms/irc/client.go
+--- lightning-src.orig/pkg/platforms/irc/client.go	2026-11-18 17:47:05.000000000 +0000
++++ lightning-src/pkg/platforms/irc/client.go	2026-11-19 13:52:10.594037610 +0000
+@@ -53,6 +53,9 @@
+ 	isupport      map[string]string
+ 	capsAvailable map[string][]string
+ 	capsEnabled   []string
++	// hideAuthor sends plain text instead of "[nick]: text". Set when the IRC
++	// network has no draft/relaymsg and the bridge should stay unobtrusive.
++	hideAuthor bool
+ 	pendingEcho   map[string]chan string
+ 	chatHistory   map[string]struct{}
+ }
+diff -ruN lightning-src.orig/pkg/platforms/irc/outgoing.go lightning-src/pkg/platforms/irc/outgoing.go
+--- lightning-src.orig/pkg/platforms/irc/outgoing.go	2026-11-18 17:47:05.000000000 +0000
++++ lightning-src/pkg/platforms/irc/outgoing.go	2026-11-19 13:52:10.601185194 +0000
+@@ -84,7 +84,7 @@
+ 			continue
+ 		}
+ 
+-		if msg.Author.Username != "" {
++		if msg.Author.Username != "" && !p.bot.hideAuthor {
+ 			if len(msg.Author.Color) > 1 {
+ 				color := parseColorFromHex(msg.Author.Color[1:]).findClosest()
+ 
+diff -ruN lightning-src.orig/pkg/platforms/irc/plugin.go lightning-src/pkg/platforms/irc/plugin.go
+--- lightning-src.orig/pkg/platforms/irc/plugin.go	2026-11-18 17:47:05.000000000 +0000
++++ lightning-src/pkg/platforms/irc/plugin.go	2026-11-19 13:52:10.601017814 +0000
+@@ -40,10 +40,13 @@
+ //			"timeout":      "2", // message/sec limit preventing autokilling (optional, defaults to 2)
+ //			"connect_cmds": "...", // commands to run on connect (optional, used to login with NickServ)
+ //			"avatar_url": "...", // url with a `{{host}}` placeholder that generates a profile picture (optional)
++			"hide_author": "false", // drop the "[nick]: " prefix (optional; needed when the network lacks draft/relaymsg)
+ //		}
+ func New(cfg map[string]string, data lightning.PluginDataStorage) (lightning.Plugin, error) {
+ 	tls, _ := strconv.ParseBool(cfg["tls"])
+ 
++	hideAuthor, _ := strconv.ParseBool(cfg["hide_author"])
++
+ 	timeout, err := strconv.ParseInt(cfg["timeout"], 10, 64)
+ 	if err != nil {
+ 		timeout = 2
+@@ -52,6 +55,7 @@
+ 	session := client{
+ 		server: cfg["server"], nick: cfg["nick"], user: cfg["sasl_user"], pass: cfg["sasl_pass"],
+ 		commands: cfg["connect_cmds"], avatarURL: cfg["avatar_url"], useTLS: tls, timeout: timeout, data: data,
++		hideAuthor: hideAuthor,
+ 		messages: make(chan *lightning.Message, 2048), privmsg: make(chan privmsg, 2048),
+ 		names: make(map[string][]nameUser), store: make(map[string]any),
+ 		typing: make(chan *lightning.TypingEvent, 2048), redact: make(chan *lightning.BaseMessage, 2048),
