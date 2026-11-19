@@ -39,21 +39,26 @@ registry. The real unknown is not the code but who queries what, which lives ser
 We keep the probe: it costs this container nothing, nothing depends on it, and the only
 exposure is that the homelab IP appears as a measurement point. If that ever stops being
 acceptable, `systemctl disable --now cheburprobe` is the whole removal.
-## cheburprobe is off (2026-11-19)
 
-The probe was running but could not do its job, and the reason is not the token:
-`PROBE_ID=56` and `PROBE_TOKEN` sit in `/etc/default/cheburprobe` and reach the process —
-MQTT connects fine. It fails on **DPI calibration**:
+## cheburprobe works; the scary lines are noise (2026-11-19)
 
+The probe is enabled and publishes results: **107 in five minutes**. Two things in the log
+look like failures and are not.
+
+`DPI calibration ... :443 is unknown: method=post_client_hello, reason=connect_error` — the
+calibration target is IPv6 (`2606:4700:4700::1111`) and this network has no IPv6. The
+project says to ignore it when the network lacks IPv6, and the probe keeps working.
+
+`dropping expired queued task` — the host is off overnight, so the server queues tasks that
+are stale by the time it boots; the probe discards them in bulk. 100 expiries against 107
+published results in the same five minutes is normal, not a failure.
+
+`failed to handle task ...: no config` — happens for a subset of task types (20 per five
+minutes). It does not stop the rest.
+
+Lesson recorded because it cost a wrong conclusion: count `probe/results/v1` publishes before
+believing the warnings.
+
+```sh
+journalctl -u cheburprobe --since "-5 min" -o cat | grep -c probe/results/v1
 ```
-WARN DPI calibration for [2606:4700:4700::1111]:443 is unknown: method=post_client_hello, reason=connect_error
-```
-
-That target is IPv6, and the home network has none (`ip -6 addr` empty, `ping -6` →
-"Network is unreachable"). With calibration unknown, tasks fail as `no config`, and the
-hourly downtime adds a backlog that the probe can never drain: 907 tasks expired in ten
-minutes while 8 failed, none completed.
-
-The owner has already told Cheburcheck that this network has no IPv6; until they stop
-assigning IPv6 calibration to probe 56, the service stays disabled. Re-enable with
-`systemctl enable --now cheburprobe` once they do.
