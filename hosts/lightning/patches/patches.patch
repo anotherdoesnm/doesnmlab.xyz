@@ -1,7 +1,15 @@
 diff -ruN lightning-src.orig/pkg/platforms/irc/client.go lightning-src/pkg/platforms/irc/client.go
 --- lightning-src.orig/pkg/platforms/irc/client.go	2026-11-18 17:47:05.000000000 +0000
-+++ lightning-src/pkg/platforms/irc/client.go	2026-11-19 13:52:10.594037610 +0000
-@@ -53,6 +53,9 @@
++++ lightning-src/pkg/platforms/irc/client.go	2026-11-19 14:24:59.622798733 +0000
+@@ -36,6 +36,7 @@
+ type client struct {
+ 	avatarURL     string
+ 	server        string
++	passwd        string
+ 	nick          string
+ 	user          string
+ 	pass          string
+@@ -53,6 +54,9 @@
  	isupport      map[string]string
  	capsAvailable map[string][]string
  	capsEnabled   []string
@@ -11,6 +19,25 @@ diff -ruN lightning-src.orig/pkg/platforms/irc/client.go lightning-src/pkg/platf
  	pendingEcho   map[string]chan string
  	chatHistory   map[string]struct{}
  }
+@@ -130,6 +134,18 @@
+ 
+ 	reader := bufio.NewReader(conn)
+ 
++	// parley-style servers want PASS before NICK/USER, and reject the connection
++	// outright when the account needs a password or an IRC token.
++	if c.passwd != "" {
++		if err = sendRaw(conn, message{command: "PASS", params: []string{c.passwd}}); err != nil {
++			log.Printf("irc: failed to send PASS on %q: %v\n", c.server, err)
++
++			_ = conn.Close()
++
++			return nil, nil, nil, false
++		}
++	}
++
+ 	if err = sendRaw(conn, message{command: "CAP", params: []string{"LS", "302"}}); err != nil { //nolint:goconst
+ 		log.Printf("irc: failed to start negotiating capacities on %q: %v\n", c.server, err)
+ 		time.Sleep(100 * time.Millisecond)
 diff -ruN lightning-src.orig/pkg/platforms/irc/outgoing.go lightning-src/pkg/platforms/irc/outgoing.go
 --- lightning-src.orig/pkg/platforms/irc/outgoing.go	2026-11-18 17:47:05.000000000 +0000
 +++ lightning-src/pkg/platforms/irc/outgoing.go	2026-11-19 13:52:10.601185194 +0000
@@ -25,12 +52,13 @@ diff -ruN lightning-src.orig/pkg/platforms/irc/outgoing.go lightning-src/pkg/pla
  
 diff -ruN lightning-src.orig/pkg/platforms/irc/plugin.go lightning-src/pkg/platforms/irc/plugin.go
 --- lightning-src.orig/pkg/platforms/irc/plugin.go	2026-11-18 17:47:05.000000000 +0000
-+++ lightning-src/pkg/platforms/irc/plugin.go	2026-11-19 13:52:10.601017814 +0000
-@@ -40,10 +40,13 @@
++++ lightning-src/pkg/platforms/irc/plugin.go	2026-11-19 14:25:13.816793370 +0000
+@@ -40,10 +40,14 @@
  //			"timeout":      "2", // message/sec limit preventing autokilling (optional, defaults to 2)
  //			"connect_cmds": "...", // commands to run on connect (optional, used to login with NickServ)
  //			"avatar_url": "...", // url with a `{{host}}` placeholder that generates a profile picture (optional)
-+			"hide_author": "false", // drop the "[nick]: " prefix (optional; needed when the network lacks draft/relaymsg)
++//			"hide_author": "false", // drop the "[nick]: " prefix (optional; needs no draft/relaymsg)
++//			"pass": "", // server password sent before NICK (optional; parley wants its IRC token here)
  //		}
  func New(cfg map[string]string, data lightning.PluginDataStorage) (lightning.Plugin, error) {
  	tls, _ := strconv.ParseBool(cfg["tls"])
@@ -40,11 +68,11 @@ diff -ruN lightning-src.orig/pkg/platforms/irc/plugin.go lightning-src/pkg/platf
  	timeout, err := strconv.ParseInt(cfg["timeout"], 10, 64)
  	if err != nil {
  		timeout = 2
-@@ -52,6 +55,7 @@
+@@ -52,6 +56,7 @@
  	session := client{
  		server: cfg["server"], nick: cfg["nick"], user: cfg["sasl_user"], pass: cfg["sasl_pass"],
  		commands: cfg["connect_cmds"], avatarURL: cfg["avatar_url"], useTLS: tls, timeout: timeout, data: data,
-+		hideAuthor: hideAuthor,
++		hideAuthor: hideAuthor, passwd: cfg["pass"],
  		messages: make(chan *lightning.Message, 2048), privmsg: make(chan privmsg, 2048),
  		names: make(map[string][]nameUser), store: make(map[string]any),
  		typing: make(chan *lightning.TypingEvent, 2048), redact: make(chan *lightning.BaseMessage, 2048),

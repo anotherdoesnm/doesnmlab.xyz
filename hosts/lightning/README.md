@@ -1,44 +1,86 @@
-# lightning — мост IRC ↔ Fluxer
+# lightning — мост IRC ↔ Fluxer (заменяет tuwunel + heisenbridge)
 
-Замена связки `tuwunel + heisenbridge`. У lightning есть нативные плагины IRC и Fluxer
-(Fluxer обслуживается discord-плагином: `api_host` содержит `fluxer` → API v1), поэтому
-Matrix из схемы выпадает целиком.
+Работает с 2026-11-19. Матрица из схемы выпала целиком: у lightning есть нативные
+плагины IRC и Fluxer (Fluxer обслуживается discord-плагином: `api_host` содержит
+`fluxer` → API v1).
 
-## Почему VPS, а не LXC
+```
+IRC (parley) #lobby  ↔  Fluxer #lobby
+             #parley ↔          #parley
+             #ru     ↔          #ru
+```
 
-Гостевые контейнеры живут на pve, а хост выключается ночью по `nightly-poweroff.timer` —
-мост ложился бы вместе с ним. VPS работает круглосуточно, а сам бот занимает ~40–60 МБ
-RSS (Go + SQLite), что для 612 МБ свободных приемлемо. Юнит ограничен `MemoryMax=192M`,
-чтобы бот не стал причиной уже почти исчерпанного swap.
+## Почему VPS и почему Docker
 
-## Патч `hide_author`
+LXC живёт на pve, а хост выключается ночью — бот ложился бы вместе с ним. На VPS всё
+остальное работает в compose, поэтому и бот там же: образ `scratch` + статический
+бинарник, `VOLUME /data`, лимит памяти 192 МиБ (на VPS почти не осталось запаса).
 
-При отсутствии IRCv3 `draft/relaymsg` lightning клеит префикс `[ник]: текст`. Патч
-добавляет опцию `hide_author`, и сообщения уходят голым текстом — в канале видно
-`<lightning> текст` вместо `<lightning> [ник]: текст`.
+Собирать Go **на VPS нельзя**: свободной памяти было 70 МБ, и первая попытка сборки
+уронила машину в своп (SSH рвался на баннере, сайты отдавали 502). Бинарник собирается
+на nexus (Go 1.26, `CGO_ENABLED=0`) и копируется готовым; `docker build` только
+упаковывает.
 
-Ограничение честное: **без relaymsg подделать источник сообщения нельзя**, протокол
-всегда несёт отправителя. Relaymsg умеет Ergo (и h4ks по словам владельца), parley и
-retronode — нет. На стороне Fluxer незаметность достигается вебхуками, там ограничений нет.
+## Два патча
 
-## Сборка
+`patches/patches.patch` — оба нужны на parley:
+
+1. **`hide_author`** — без `draft/relaymsg` lightning клеит `[ник]: текст`; опция
+   отключает префикс, и в канал уходит голый текст.
+2. **`pass`** — серверный пароль до `NICK`. Пригодился, пока выясняли, как parley
+   пускает ботов; в итоге используется SASL, но опция осталась (parley-совместимые
+   сети без SASL её оценят).
+
+`pass` **не** решает задачу «писать от чужого ника»: без relaymsg подделать отправителя
+нельзя, IRC всегда несёт источник в протоколе. Ergo и h4ks relaymsg умеют, parley и
+retronode — нет.
+
+## Аутентификация на parley
+
+parley требует, чтобы **ник совпадал с именем аккаунта**, и объявляет `sasl=PLAIN`.
+Токен из настроек аккаунта работает как пароль SASL:
+
+```toml
+nick      = "doesnm"
+sasl_user = "doesnm"
+sasl_pass = "plt_…"
+```
+
+`PASS` до регистрации parley тоже принимает, но SASL надёжнее. Если несколько раз
+ошибиться, сервер включает лимит («too many failed logins», до 5 минут) — бот в цикле
+рестарта только продлевает блокировку, поэтому после ошибок контейнер надо **остановить,
+подождать и запустить один раз**.
+
+## Вебхуки вместо бота-автора
+
+discord-плагин отправляет через вебхук, если `ChannelData != nil`, и падает с
+`404 POST /v1/webhooks//`, когда в данных пусто. Поэтому на каждый Fluxer-канал
+создаётся вебхук, а его `id` и `token` кладутся в `bridge_channels.data`:
+
+```json
+{"id": "1572985020098818050", "token": "…"}
+```
+
+С ними сообщения из IRC приходят в Fluxer **от имени автора**, а не от бота.
+
+## Вход бота в каналы
+
+Команды `!bridge create` / `!bridge join` требуют прав администратора на обеих
+сторонах; на parley операторов нет. Поэтому каналы заводятся вручную:
+
+1. бот входит в IRC-канал только по `INVITE` — приглашать надо с аккаунта, который уже
+   в канале (`scripts/irc-probe.py` умеет: SASL-логин, join, invite);
+2. мосты пишутся в SQLite (`scripts/seed-bridges.py`), id канала — `<плагин>::<канал>`,
+   например `parley::#lobby` и `fluxer::1572978870410285056`;
+3. вебхуки добавляются в `bridge_channels.data` (см. выше);
+4. контейнер перезапускается, бот поднимает мосты из базы.
+
+## Проверка
 
 ```sh
-# на VPS
-cd /root/lightning-src
-docker run --rm -v "$PWD":/src -w /src golang:1.26 go build -o /src/lightning ./cmd/lightning
+docker logs --tail 20 lightning   # SASL authentication successful + ready in 1 guilds
+scripts/irc-listen.py '#lobby' 10 # слушать IRC, пока пишут в Fluxer
 ```
 
-Исходники — архив `develop` с codeberg.org/jersey/lightning (symlink README.md → docs/index.md
-делает `curl .../raw/branch/develop/README.md` бесполезным: он отдаёт 13 байт).
-
-## Мост в базе
-
-```sql
-INSERT INTO bridges (id, codes, allow_everyone, add_platform_name)
-VALUES ('<uuid>', '[]', false, false);
-
-INSERT INTO bridge_channels (bridge_id, channel_id, data) VALUES
-  ('<uuid>', '<id канала Fluxer>', '{"plugin":"fluxer"}'),
-  ('<uuid>', '#канал',            '{"plugin":"parley"}');
-```
+Обмен проверен в обе стороны: сообщение из `#lobby` появилось в Fluxer от `probe`,
+сообщение из Fluxer — в `#lobby`.

@@ -1,0 +1,17 @@
+services:
+  lightning:
+    build:
+      context: .
+      dockerfile: Dockerfile.lightning
+    container_name: lightning
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    networks:
+      - traefik_network
+    # The bot is small, but this VPS has almost no headroom left.
+    mem_limit: 192m
+
+networks:
+  traefik_network:
+    external: true
