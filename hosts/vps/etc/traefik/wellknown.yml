@@ -1,0 +1,26 @@
+# Matrix discovery for the apex: the homeserver (Tuwunel on the white-IP host)
+# serves both files, so only a redirect is needed here. Redirects are allowed by
+# the spec ("30x redirects should be followed") and keep Traefik file-less.
+http:
+  routers:
+    matrix-wellknown:
+      rule: Host(`doesnmlab.xyz`) && PathPrefix(`/.well-known/matrix`)
+      entryPoints:
+        - websecure
+      priority: 200
+      middlewares:
+        - matrix-wellknown-redirect
+      service: matrix-wellknown-noop
+      tls:
+        certResolver: myresolver
+  middlewares:
+    matrix-wellknown-redirect:
+      redirectRegex:
+        regex: "^https://doesnmlab\\.xyz/(\\.well-known/matrix/.*)"
+        replacement: "https://matrix.doesnmlab.xyz/${1}"
+        permanent: true
+  services:
+    matrix-wellknown-noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9"
