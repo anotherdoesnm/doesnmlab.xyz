@@ -35,7 +35,7 @@ hosts/<host>/
 |---|---|---|
 | `root-traefik-1` | `traefik:v3.7` | TLS + routing for every domain, ACME via deSEC |
 | `frps` | `snowdreamtech/frps` | reverse tunnel to the home network |
-| `homepage` | `homepage-patched:22.23.4` | dashboard |
+| `glance` | `glanceapp/glance` | start page (was homepage) |
 | `irc-parley-1` | `prologic/parley` | IRC network |
 
 On the host, outside Docker: **postfix** (mail relay for `doesnmlab.xyz`, listens on

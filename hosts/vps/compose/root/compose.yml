@@ -12,10 +12,12 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.ircsecure.address=:6697"
       # Minecraft speaks raw TCP: no SNI, no Host header. The router lives in
-      # /traefik/minecraft.yml and points at the frp tunnel, not at a container.
+      # /root/traefik/minecraft.yml and points at the frp tunnel, not at a container.
       - "--entrypoints.minecraft.address=:25565"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.file.directory=/traefik"
+      # RFC 2136: Knot accepts the _acme-challenge TXT over TSIG. This is the path
+      # that keeps certificates working once the zone moves off deSEC.
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=doesnm@project26.cc"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
@@ -41,30 +43,28 @@ services:
       - ./traefik:/traefik
     networks:
       - traefik_network
-  homepage:
-    image: homepage-patched:22.23.4
+  glance:
+    image: glanceapp/glance:latest
     restart: always
-    container_name: homepage
+    container_name: glance
     volumes:
-      - ./homepage:/app/config
+      - ./glance/glance.yml:/app/config/glance.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - traefik_network
-    environment:
-      HOMEPAGE_ALLOWED_HOSTS: doesnmlab.xyz,doesnm.dn42
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.homepage-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.homepage.rule=Host(`doesnmlab.xyz`)"
-      - "traefik.http.routers.homepage.entrypoints=web"
-      - "traefik.http.routers.homepage.middlewares=homepage-https"
-      - "traefik.http.routers.homepage-secure.rule=Host(`doesnmlab.xyz`)"
-      - "traefik.http.routers.homepage-secure.entrypoints=websecure"
-      - "traefik.http.routers.homepage-secure.tls.certresolver=myresolver"
-      - "traefik.http.routers.homepage-secure.service=homepage-service"
-      - "traefik.http.services.homepage-service.loadbalancer.server.port=3000"
-      - "traefik.http.routers.homepage-dn42.rule=Host(`doesnm.dn42`)"
-      - "traefik.http.routers.homepage-dn42.entrypoints=web"
+      - "traefik.http.middlewares.glance-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.glance.rule=Host(`doesnmlab.xyz`)"
+      - "traefik.http.routers.glance.entrypoints=web"
+      - "traefik.http.routers.glance.middlewares=glance-https"
+      - "traefik.http.routers.glance-secure.rule=Host(`doesnmlab.xyz`)"
+      - "traefik.http.routers.glance-secure.entrypoints=websecure"
+      - "traefik.http.routers.glance-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.glance-secure.service=glance-service"
+      - "traefik.http.services.glance-service.loadbalancer.server.port=8080"
+      - "traefik.http.routers.glance-dn42.rule=Host(`doesnm.dn42`)"
+      - "traefik.http.routers.glance-dn42.entrypoints=web"
 networks:
   traefik_network:
     external: true

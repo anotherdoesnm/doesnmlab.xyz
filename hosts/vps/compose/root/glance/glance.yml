@@ -1,0 +1,108 @@
+# Glance — the same portal homepage used to serve, minus the Node build.
+#
+# Links and status come from the old /root/homepage/services.yaml; the container
+# cards used to be discovered through `homepage.*` labels, but Glance reads them
+# from this file, so no container has to be recreated to give it a card.
+server:
+  port: 8080
+  proxied: true
+
+branding:
+  app-name: doesnmlab
+  logo-text: "д"
+
+pages:
+  - name: Home
+    columns:
+      - size: small
+        widgets:
+          - type: server-stats
+            servers:
+              - type: local
+                name: VPS
+                hide-mountpoints-by-default: true
+                mountpoints:
+                  "/":
+                    hide: false
+          - type: bookmarks
+            groups:
+              - title: Owner
+                links:
+                  - title: Website
+                    url: https://doesnm.mbox.blue
+                    icon: si:aboutdotme
+              - title: Forges
+                links:
+                  - title: project26
+                    url: https://git.project26.cc
+                    icon: si:forgejo
+                  - title: GitHub
+                    url: https://github.com/anotherdoesnm
+                    icon: si:github
+              - title: Status
+                links:
+                  - title: Gatus
+                    url: https://gatus.project26.cc
+                    icon: mdi:heart-pulse
+      - size: full
+        widgets:
+          - type: monitor
+            cache: 1m
+            title: Homelab
+            sites:
+              - title: dsh
+                url: https://skynet.doesnmlab.xyz
+                icon: mdi:console-line
+              - title: YunoHost
+                url: https://nexus.doesnmlab.xyz
+                icon: di:yunohost
+              - title: Fluxer
+                url: https://fluxer.doesnmlab.xyz
+                icon: di:fluxer
+              - title: VirtualTabletop
+                url: https://vtt.doesnmlab.xyz
+                icon: mdi:dice-multiple
+              - title: LibreTranslate
+                url: https://translate.doesnmlab.xyz
+                icon: mdi:translate
+              - title: DeltaChat uptime
+                url: https://up.doesnmlab.xyz
+                icon: mdi:robot-happy
+          - type: docker-containers
+            title: Containers on this VPS
+            containers:
+              root-traefik-1:
+                name: traefik
+                description: TLS and routing for every domain
+                url: https://doesnmlab.xyz
+                icon: si:traefikproxy
+              frps:
+                name: frps
+                description: Reverse tunnel to the home network
+                icon: mdi:tunnel
+              irc-parley-1:
+                name: parley
+                description: Federated IRC network
+                url: https://parley.doesnmlab.xyz
+                icon: mdi:chat
+              lightning:
+                name: lightning
+                description: IRC ↔ Fluxer bridge
+                icon: si:lightning
+              twtxt-bridge:
+                name: twtxt-bridge
+                description: ActivityPub → twtxt
+                url: https://twtxt.doesnmlab.xyz
+                icon: mdi:rss
+              mail-relay:
+                name: mail-relay
+                description: Mail path for doesnmlab.xyz
+                icon: mdi:email
+              sokobot:
+                name: SokobotNET
+                description: Public Sokoban bot on fluxer.com
+                icon: mdi:gamepad-variant
+              glance:
+                name: glance
+                description: This dashboard
+                icon: si:glance
