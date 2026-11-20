@@ -65,29 +65,6 @@ services:
       - "traefik.http.services.homepage-service.loadbalancer.server.port=3000"
       - "traefik.http.routers.homepage-dn42.rule=Host(`doesnm.dn42`)"
       - "traefik.http.routers.homepage-dn42.entrypoints=web"
-  auth:
-     image: ghcr.io/kivraid/kivraid:2026.07.25.120008
-     restart: always
-     networks:
-       - traefik_network
-     volumes:
-       - ./kivraid:/data
-     labels:
-       - "traefik.enable=true"
-       - "traefik.http.middlewares.auth-https.redirectscheme.scheme=https"
-       - "traefik.http.routers.auth.rule=Host(`auth.doesnmlab.xyz`)"
-       - "traefik.http.routers.auth.entrypoints=web"
-       - "traefik.http.routers.auth.middlewares=auth-https"
-       - "traefik.http.routers.auth-secure.rule=Host(`auth.doesnmlab.xyz`)"
-       - "traefik.http.routers.auth-secure.entrypoints=websecure"
-       - "traefik.http.routers.auth-secure.tls.certresolver=myresolver"
-       - "traefik.http.routers.auth-secure.service=auth-service"
-       - "traefik.http.services.auth-service.loadbalancer.server.port=9000"
-       - "homepage.group=Tools"
-       - "homepage.name=auth"
-       - "homepage.href=https://auth.doesnmlab.xyz"
-       - "homepage.description=SSO Auth"
-       - "homepage.icon=https://raw.githubusercontent.com/kivraid/kivraid/main/docs/img/logo.svg"
 networks:
   traefik_network:
     external: true

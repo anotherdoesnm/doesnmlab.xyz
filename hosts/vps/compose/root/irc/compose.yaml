@@ -7,11 +7,6 @@ services:
       - ./parley:/data
     networks:
       - traefik_network
-    environment:
-      - PARLEY_OIDC_NAME=SSO
-      - PARLEY_OIDC_ISSUER=https://auth.doesnmlab.xyz
-      - PARLEY_OIDC_CLIENT_ID=7869859481717faeeecd02009cc213aeea487ba7
-      - PARLEY_OIDC_CLIENT_SECRET=${PARLEY_OIDC_CLIENT_SECRET}
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.parley-https.redirectscheme.scheme=https"
