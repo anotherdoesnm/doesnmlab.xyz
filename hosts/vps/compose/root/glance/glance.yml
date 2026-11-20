@@ -60,6 +60,25 @@ pages:
               - title: DeltaChat uptime
                 url: https://up.doesnmlab.xyz
                 icon: mdi:robot-happy
+          - type: custom-api
+            title: pve
+            url: http://frps:10011/metrics
+            cache: 30s
+            template: |
+              <div class="flex justify-between text-center">
+                <div>
+                  <div class="color-highlight size-h3">{{ printf "%.0f" (.JSON.Float "cpu_temp_c") }}°</div>
+                  <div class="size-h6">CPU</div>
+                </div>
+                <div>
+                  <div class="color-highlight size-h3">{{ printf "%.0f" (.JSON.Float "nvme_temp_c") }}°</div>
+                  <div class="size-h6">NVME</div>
+                </div>
+                <div>
+                  <div class="color-highlight size-h3">{{ printf "%.2f" (.JSON.Float "load1") }}</div>
+                  <div class="size-h6">LOAD</div>
+                </div>
+              </div>
           - type: docker-containers
             title: Containers on this VPS
             containers:
