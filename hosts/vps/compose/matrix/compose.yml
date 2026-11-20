@@ -1,0 +1,86 @@
+# TUWUNEL
+version: '3'
+
+services:
+    homeserver:
+        image: jevolk/tuwunel:latest
+        restart: unless-stopped
+        volumes:
+            - ./db:/var/lib/matrix-conduit/
+            - /etc/ssl/certs:/etc/ssl/certs:ro
+            - /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro
+
+        environment:
+            TUWUNEL_SERVER_NAME: doesnmlab.xyz
+            TUWUNEL_DATABASE_PATH: /var/lib/matrix-conduit/
+            TUWUNEL_DATABASE_BACKEND: rocksdb
+            TUWUNEL_DEFAULT_ROOM_VERSION: '"11"'
+            TUWUNEL_PORT: 6167
+            TUWUNEL_MAX_REQUEST_SIZE: 20000000
+            TUWUNEL_ALLOW_REGISTRATION: 'true'
+            TUWUNEL_ALLOW_FEDERATION: 'true'
+            TUWUNEL_TRUSTED_SERVERS: '["notary.meluao.ru"]'
+            TUWUNEL_ADDRESS: 0.0.0.0
+            TUWUNEL_WELL_KNOWN__CLIENT: "https://matrix.doesnmlab.xyz"
+            TUWUNEL_WELL_KNOWN__SERVER: "matrix.doesnmlab.xyz:443"
+            TUWUNEL_REGISTRATION_TOKEN: "<redacted>"
+            TUWUNEL_RUNTIME_GC_MUZZY: "true"
+            TUWUNEL_ENCRYPTION_ENABLED_BY_DEFAULT_FOR_ROOM_TYPE: "off"
+            TUWUNEL_IDENTITY_PROVIDER__0__BRAND: "SSO"
+            TUWUNEL_IDENTITY_PROVIDER__0__CLIENT_ID: "1c46ae98cfbbd5aba8706de0a4b670051053d0a8"
+            TUWUNEL_IDENTITY_PROVIDER__0__CLIENT_SECRET: "<redacted>"
+            TUWUNEL_IDENTITY_PROVIDER__0__CALLBACK_URL: "https://matrix.doesnmlab.xyz/_matrix/client/unstable/login/sso/callback/1c46ae98cfbbd5aba8706de0a4b670051053d0a8"
+            TUWUNEL_IDENTITY_PROVIDER__0__ISSUER_URL: "https://auth.doesnmlab.xyz"
+            TUWUNEL_IDENTITY_PROVIDER__0__TRUSTED: true
+            TUWUNEL_IDENTITY_PROVIDER__0__USER_CLAIMS: '["sub"]'
+            TUWUNEL_EMERGENCY_PASSWORD: "<redacted>"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.middlewares.https-redirect.redirectScheme.scheme=https"
+            - "traefik.http.routers.tuwunel.entrypoints=web"
+            - "traefik.http.routers.tuwunel.rule=Host(`matrix.doesnmlab.xyz`)"
+            - "traefik.http.routers.tuwunel.middlewares=https-redirect"
+            - "traefik.http.routers.tuwunel-secure.entrypoints=websecure"
+            - "traefik.http.routers.tuwunel-secure.rule=Host(`matrix.doesnmlab.xyz`)"
+            - "traefik.http.routers.tuwunel-secure.tls=true"
+            - "traefik.http.routers.tuwunel-secure.service=tuwunel"
+            - "traefik.http.services.tuwunel.loadbalancer.server.port=6167"
+            - "traefik.http.routers.tuwunel-secure.tls.certresolver=myresolver"
+            - "traefik.http.routers.root-wk.rule=Host(`doesnmlab.xyz`) && PathPrefix(`/.well-known/matrix`)"
+            - "traefik.http.routers.root-wk.entrypoints=websecure"
+            - "traefik.http.routers.root-wk.tls.certresolver=myresolver"
+            - "traefik.http.routers.root-wk.service=tuwunel"
+            - "homepage.name=Tuwunel"
+            - "homepage.group=Communication"
+            - "homepage.description=Matrix homeserver"
+            - "homepage.href=https://matrix.doesnmlab.xyz"
+            - "homepage.icon=matrix.png"
+        networks:
+         - traefik_network
+    heisenbridge:
+       image: ghcr.io/anotherdoesnm/heisenbridge
+       restart: always
+       volumes:
+         - ./heisenbridge.yaml:/data/config.yaml
+       command: -v -c /data/config.yaml -o @doesnm:doesnmlab.xyz --listen-address heisenbridge https://matrix.doesnmlab.xyz
+       networks:
+         - traefik_network
+       labels:
+         - "traefik.enable=true"
+         - "traefik.http.middlewares.https-redirect.redirectScheme.scheme=https"
+         - "traefik.http.routers.heisen.entrypoints=web"
+         - "traefik.http.routers.heisen.rule=Host(`heisen.doesnmlab.xyz`)"
+         - "traefik.http.routers.heisen.middlewares=https-redirect"
+         - "traefik.http.routers.heisen-secure.entrypoints=websecure"
+         - "traefik.http.routers.heisen-secure.rule=Host(`heisen.doesnmlab.xyz`)"
+         - "traefik.http.routers.heisen-secure.tls=true"
+         - "traefik.http.routers.heisen-secure.service=heisen"
+         - "traefik.http.services.heisen.loadbalancer.server.port=9898"
+         - "traefik.http.routers.heisen-secure.tls.certresolver=myresolver"
+         - "homepage.name=Heisenbridge"
+         - "homepage.group=Communication"
+         - "homepage.description=Matrix-IRC bridge"
+
+networks:
+  traefik_network:
+    external: true
