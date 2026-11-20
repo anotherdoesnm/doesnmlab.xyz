@@ -1,7 +1,7 @@
 # lightning bridge: IRC <-> Fluxer, no Matrix in the path.
 database      = "/root/lightning/lightning.db"
 database_type = "sqlite"
-prefix        = "!"
+prefix        = "~"   # "!" belongs to the IRC bots in bridged channels
 addr          = ":5991"
 host          = "http://150.241.64.73:5991"
 
