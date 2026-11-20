@@ -21,7 +21,7 @@ Three layers, from the metal up:
 ```
 hosts/<host>/
   compose/        docker compose files, exactly as deployed
-  etc/            host configuration: knot, postfix, traefik, systemd units
+  etc/            host configuration: postfix, traefik, systemd units
   usr/local/      small operator scripts that live outside packages
   .env.example    every variable the compose files need; real values in .env
 ```
@@ -94,24 +94,14 @@ Rollback while the host package is still installed: `docker compose down` in
 
 ## DNS
 
-`dns/` is a compose project of its own: **knot** (authoritative for
-`doesnmlab.xyz`, image `cznic/knot:v3.6.2`, host networking so it answers on the
-public address) and **dns-api** (HTTP over `knotc`, built *from the same image* so
-its `knotc` always matches the server). The two share `./run` for the control
-socket; the zone and its KASP keys live in `./knot` and `./storage`, both ignored by
-git. API routing is declared with Docker labels, not a Traefik file.
+The domain is served by **deSEC** (anycast, DNSSEC, API); there is no self-hosted
+authoritative DNS any more. Until 2026-11-20 `dns/` was a compose project of its own —
+knot `cznic/knot:v3.6.2` plus `dns-api` (HTTP over `knotc`) — but the zone it served was
+only a copy of the deSEC one, nothing delegated to it, and Traefik's `rfc2136` resolver
+issued exactly zero certificates in its lifetime. Both containers and both config trees
+were removed; this file's history has them if the delegation ever moves back.
 
-The container migration kept the same keys: KSK `20730`, ZSK `32847`. A DS record
-for `20730` is what has to be published at the registrar when the delegation moves.
-
-`knot/knot.conf` is generated: `./render.sh` fills the ACME TSIG secret from
-`./tsig-acme` (never in git). Traefik has an `rfc2136` resolver that writes
-`_acme-challenge` into this Knot over that key — the replacement for the deSEC DNS
-challenge once the zone stops being served by deSEC.
-
-The rfc2136 path can only be validated **after** the delegation switches: Let's
-Encrypt queries the authoritative servers, and until then those are deSEC's. Until
-the switch, deSEC keeps renewing the wildcard.
+The stale `_matrix._tcp` and `_matrix-fed._tcp` SRV records went with the homeserver.
 
 Source checkouts under `/root` (for example the `heisenbridge` clones with their
 own `docker-compose.yml` test harness) are **not** infra and are not in this repo —
@@ -122,7 +112,7 @@ what matters about them is the image tag that runs, not the checkout.
 1. Debian 12, docker, the key from `.tools/keys/`.
 2. Copy `hosts/vps/` over.
 3. Fill `.env` (`.env.example` lists the keys).
-4. `etc/` paths mirror the system (`etc/knot/knot.conf` → `/etc/knot/knot.conf`).
+4. `etc/` paths mirror the system (`etc/traefik/homenet.yml` → `/root/traefik/homenet.yml` as a volume).
 5. `systemctl daemon-reload`, then `docker compose up -d` in each compose directory.
 6. `mika.service` must come up before postfix — the unit already declares it.
 
