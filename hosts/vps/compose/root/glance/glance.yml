@@ -28,22 +28,14 @@ pages:
             groups:
               - title: Owner
                 links:
-                  - title: Website
-                    url: https://doesnm.mbox.blue
-                    icon: si:aboutdotme
+                  - title: doesnm
+                    url: https://doesnm.fluxer.name
+                    icon: si:fluxer
               - title: Forges
                 links:
-                  - title: project26
-                    url: https://git.project26.cc
-                    icon: si:forgejo
                   - title: GitHub
                     url: https://github.com/anotherdoesnm
                     icon: si:github
-              - title: Status
-                links:
-                  - title: Gatus
-                    url: https://gatus.project26.cc
-                    icon: mdi:heart-pulse
       - size: full
         widgets:
           - type: monitor
