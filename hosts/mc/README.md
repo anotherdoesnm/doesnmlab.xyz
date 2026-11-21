@@ -6,7 +6,7 @@ minutes.
 
 | | |
 |---|---|
-| container | 151, `192.168.1.61`, 2 vCPU, 2 GiB, 10 GB, `onboot: 0` |
+| container | 151, `192.168.1.61`, 2 vCPU, 2 GiB, 10 GB, `onboot: 1` (starts with the host) |
 | java | Adoptium JRE 8 in `/opt/java8` (Debian 12 has no openjdk-8, and 1.7.10 wants 8) |
 | server | `/srv/minecraft/server.jar`, the official jar `952438ac…` from Mojang |
 | proxy | `lazymc` on `0.0.0.0:25565` → `127.0.0.1:25566` |
